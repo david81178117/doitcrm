@@ -1,0 +1,22 @@
+erDiagram
+  teachers ||--o{ classes : main_teacher
+  teachers ||--o{ classes : advisor
+  classes ||--o{ students : current_class
+  students ||--o{ student_parent_rel : has
+  parents ||--o{ student_parent_rel : has
+  students ||--o{ class_enrollments : enrolls
+  classes ||--o{ class_enrollments : includes
+  students ||--o{ student_works : submits
+  classes ||--o{ student_works : assigns
+  teachers ||--o{ teacher_specializations : has
+  classes ||--o{ homework_assignments : assigns
+  teachers ||--o{ homework_assignments : assigns
+  homework_assignments ||--o{ student_works : referenced_by
+  classes ||--o{ class_schedule : has
+  class_schedule ||--o{ student_attendance : schedules
+  students ||--o{ student_attendance : has
+  classes ||--o{ student_attendance : has
+  teachers ||--o{ student_attendance : records
+  students ||--o{ student_performance : has
+  classes ||--o{ student_performance : has
+  teachers ||--o{ student_performance : evaluates
