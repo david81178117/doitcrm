@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS students (
 
 CREATE TABLE IF NOT EXISTS parents (
   id BIGSERIAL PRIMARY KEY,
-  wechat_id TEXT NOT NULL,
+  wechat_id TEXT NOT NULL UNIQUE,
   name TEXT,
   phone TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
