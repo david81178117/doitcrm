@@ -6,6 +6,9 @@ This is a clean, rebuilt workspace for the WeCom chat log pipeline. The goal is 
 
 - `scripts/wecom_etl.py`: loads WeCom JSONL into PostgreSQL (`wecom_chat_logs`).
 - `db/schema.sql`: core tables and indexes for chat logs and ID mapping.
+- `db/migrate_legacy_to_v2.sql`: pure SQL migration from legacy schema into v2.
+- `wecom_id_mapper.py`: v2 mapping service (API + web UI).
+- `wecom_id_mapper.html`: v2 mapping UI.
 
 ## Data dictionary (core)
 
@@ -28,6 +31,29 @@ This is a clean, rebuilt workspace for the WeCom chat log pipeline. The goal is 
 ```bash
 export DATABASE_URL="postgresql://postgres:doit123@localhost/wechat_db"
 python3 scripts/wecom_etl.py --jsonl "/opt/wecom/decrypted_database_ready.jsonl" --conflict update
+```
+
+## Mapping UI (v2)
+
+```bash
+export DB_NAME="wechat_db_legacy"
+export DB_HOST="localhost"
+export DB_PORT="5432"
+export DB_USER="postgres"
+export DB_PASSWORD=""
+export WECOM_CORP_ID="your_corp_id"
+export WECOM_SECRET="your_secret"
+python3 wecom_id_mapper.py
+```
+
+Open `http://localhost:5004` to use the UI.
+
+## Legacy migration (SQL)
+
+Run inside the PostgreSQL container or host where legacy data is loaded:
+
+```bash
+docker exec -i postgres-wechat psql -U postgres -d wechat_db_legacy < /workspaces/doitcrm/v2/db/migrate_legacy_to_v2.sql
 ```
 
 ## Next steps

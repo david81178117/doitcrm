@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业微信映射管理 v2</title>
+    <style>
+        :root {
+            --bg: #f5f2ec;
+            --card: #ffffff;
+            --ink: #1f2933;
+            --muted: #6b7280;
+            --accent: #1e9e8b;
+            --accent-strong: #167a6b;
+            --warning: #d97706;
+            --border: #e6e1d9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #efe7dd 0%, #f7f4ee 50%, #eef2f1 100%);
+            min-height: 100vh;
+            color: var(--ink);
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(25, 35, 45, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .header {
+            padding: 28px 32px;
+            background: linear-gradient(120deg, #0f766e 0%, #0ea5a4 50%, #1f9f84 100%);
+            color: #f8fafc;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            letter-spacing: 0.5px;
+        }
+
+        .header p {
+            margin-top: 6px;
+            font-size: 14px;
+            color: rgba(248, 250, 252, 0.8);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 24px 32px;
+            background: #fbfaf8;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card strong {
+            display: block;
+            font-size: 22px;
+            color: var(--accent);
+        }
+
+        .stat-card span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .controls {
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-strong);
+        }
+
+        .btn-ghost {
+            background: #f2f1ed;
+            color: #2f3a40;
+        }
+
+        .btn-ghost:hover {
+            background: #e6e2db;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 16px 32px 0;
+        }
+
+        .tab-btn {
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .filters {
+            padding: 16px 32px 24px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .filters label {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .filters .inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-wrap {
+            padding: 0 32px 32px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 12px;
+            background: #f7f4ee;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #efe9e1;
+            vertical-align: middle;
+        }
+
+        tbody tr.unmapped {
+            background: #fffaf3;
+        }
+
+        .readonly {
+            background: #f4f4f4;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        .input {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .role-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .role-btn {
+            border: 1px solid var(--border);
+            background: #ffffff;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .role-btn.active {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        .save-btn {
+            background: #111827;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+
+        .save-btn.saved {
+            background: #2f855a;
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: #111827;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .toast.error {
+            background: #b91c1c;
+        }
+
+        @media (max-width: 960px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>企业微信映射管理 v2</h1>
+        <p>微信昵称自动填充，业务称呼手动维护</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <strong id="stat-rooms-total">-</strong>
+            <span>群组总数</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-rooms-mapped">-</strong>
+            <span>群组已映射</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-users-total">-</strong>
+            <span>用户总数</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-users-mapped">-</strong>
+            <span>用户已映射</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-parents">-</strong>
+            <span>家长</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-teachers">-</strong>
+            <span>老师</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" onclick="extractIds()">提取 ID（不覆盖）</button>
+        <button class="btn btn-ghost" onclick="batchFetchNicknames()">批量获取昵称</button>
+        <button class="btn btn-ghost" onclick="loadStats()">刷新统计</button>
+        <button class="btn btn-primary" id="save-all-btn" onclick="saveAll()">全部保存</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('room_id')">群组映射</button>
+        <button class="tab-btn" onclick="switchTab('user_id')">用户映射</button>
+    </div>
+
+    <div class="filters">
+        <input type="text" id="keyword" placeholder="关键词：ID / 昵称 / 业务称呼">
+        <input type="text" id="roomid-filter" placeholder="按 roomid / 业务群名筛选用户" style="display:none;">
+        <input type="date" id="start-date" title="开始日期">
+        <input type="date" id="end-date" title="结束日期">
+        <label class="inline">
+            <input type="checkbox" id="only-unmapped">
+            只看未映射
+        </label>
+        <button class="btn btn-primary" onclick="applyFilters()">筛选</button>
+        <div id="result-count" style="font-size:12px;color:var(--muted);">结果：0</div>
+    </div>
+
+    <div class="table-wrap" id="table-container">
+        <div style="padding: 40px; color: var(--muted);">加载中...</div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '';
+    let currentTab = 'room_id';
+    let latestData = [];
+
+    window.onload = () => {
+        loadStats();
+        loadMappings();
+    };
+
+    function showToast(message, isError = false) {
+        document.querySelectorAll('.toast').forEach(t => t.remove());
+        const toast = document.createElement('div');
+        toast.className = 'toast' + (isError ? ' error' : '');
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2200);
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('roomid-filter').style.display = tab === 'user_id' ? 'block' : 'none';
+        document.getElementById('save-all-btn').style.display = tab === 'user_id' ? 'inline-flex' : 'none';
+        loadMappings();
+    }
+
+    function buildQuery() {
+        const keyword = document.getElementById('keyword').value.trim();
+        const onlyUnmapped = document.getElementById('only-unmapped').checked;
+        const roomid = document.getElementById('roomid-filter').value.trim();
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        const params = new URLSearchParams();
+        if (keyword) params.set('keyword', keyword);
+        if (onlyUnmapped) params.set('only_unmapped', 'true');
+        if (currentTab === 'user_id' && roomid) params.set('roomid', roomid);
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+        return params.toString();
+    }
+
+    async function loadStats() {
+        try {
+            const response = await fetch(`${API_BASE}/api/stats`);
+            const stats = await response.json();
+            document.getElementById('stat-rooms-total').textContent = stats.rooms.total;
+            document.getElementById('stat-rooms-mapped').textContent = stats.rooms.mapped;
+            document.getElementById('stat-users-total').textContent = stats.users.total;
+            document.getElementById('stat-users-mapped').textContent = stats.users.mapped;
+            document.getElementById('stat-parents').textContent = stats.users.parents;
+            document.getElementById('stat-teachers').textContent = stats.users.teachers;
+        } catch (error) {
+            showToast('统计加载失败', true);
+        }
+    }
+
+    async function loadMappings() {
+        const container = document.getElementById('table-container');
+        container.innerHTML = '<div style="padding: 40px; color: var(--muted);">加载中...</div>';
+        try {
+            const query = buildQuery();
+            const response = await fetch(`${API_BASE}/api/mappings/${currentTab}?${query}`);
+            latestData = await response.json();
+            renderTable(latestData);
+        } catch (error) {
+            container.innerHTML = '<div style="padding: 40px; color: var(--muted);">加载失败</div>';
+        }
+    }
+
+    function applyFilters() {
+        loadMappings();
+    }
+
+    async function extractIds() {
+        if (!confirm('确认提取所有 ID（不会覆盖已有记录）？')) return;
+        try {
+            const response = await fetch(`${API_BASE}/api/extract-all-ids`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                showToast(result.message);
+                loadStats();
+                loadMappings();
+            } else {
+                showToast(result.message || '提取失败', true);
+            }
+        } catch (error) {
+            showToast('提取失败', true);
+        }
+    }
+
+    async function batchFetchNicknames() {
+        try {
+            const response = await fetch(`${API_BASE}/api/batch-fetch-wecom-names`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_type: currentTab,
+                    limit: 80,
+                    only_unmapped: true,
+                    keyword: document.getElementById('keyword').value.trim(),
+                    roomid: document.getElementById('roomid-filter').value.trim(),
+                    start_date: document.getElementById('start-date').value,
+                    end_date: document.getElementById('end-date').value
+                })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                showToast(`成功：${result.success_count}，失败：${result.fail_count}`);
+                loadMappings();
+            } else {
+                showToast(result.message || '获取失败', true);
+            }
+        } catch (error) {
+            showToast('获取失败', true);
+        }
+    }
+
+    function renderTable(data) {
+        const container = document.getElementById('table-container');
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = '<div style="padding: 40px; color: var(--muted);">暂无数据</div>';
+            document.getElementById('result-count').textContent = '结果：0';
+            return;
+        }
+
+        document.getElementById('result-count').textContent = `结果：${data.length}`;
+
+        let html = '<table><thead><tr>';
+        if (currentTab === 'room_id') {
+            html += `
+                <th style="width: 18%;">roomid</th>
+                <th style="width: 20%;">微信昵称</th>
+                <th style="width: 30%;">业务群名</th>
+                <th style="width: 12%;">状态</th>
+                <th style="width: 20%;">操作</th>
+            `;
+        } else {
+            html += `
+                <th style="width: 14%;">用户ID</th>
+                <th style="width: 14%;">微信昵称</th>
+                <th style="width: 14%;">业务称呼</th>
+                <th style="width: 12%;">角色</th>
+                <th style="width: 14%;">学员姓名</th>
+                <th style="width: 12%;">英文名</th>
+                <th style="width: 12%;">班级 roomid</th>
+                <th style="width: 8%;">最近群</th>
+                <th style="width: 10%;">操作</th>
+            `;
+        }
+        html += '</tr></thead><tbody>';
+
+        data.forEach(item => {
+            const rowClass = item.business_name ? '' : 'unmapped';
+            if (currentTab === 'room_id') {
+                html += `
+                    <tr class="${rowClass}" data-id="${item.id}" data-original-id="${item.original_id}">
+                        <td title="${item.original_id}">${item.original_id}</td>
+                        <td><div class="readonly">${item.wecom_nickname || '未获取'}</div></td>
+                        <td>
+                            <input class="input" data-field="business_name" value="${item.business_name || ''}" placeholder="请输入业务群名">
+                        </td>
+                        <td>${item.business_name ? '已映射' : '未映射'}</td>
+                        <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
+                    </tr>
+                `;
+            } else {
+                const role = item.user_role || '';
+                const isParent = role === 'parent';
+                const studentName = item.student_name || '';
+                const studentEnglish = item.student_english_name || '';
+                const studentClass = item.student_class_room_id || '';
+                const lastRoom = item.last_roomid || '';
+                const lastRoomName = item.last_room_name || lastRoom || '';
+                html += `
+                    <tr class="${rowClass}" data-original-id="${item.original_id}" data-last-roomid="${lastRoom}">
+                        <td title="${item.original_id}">${item.original_id}</td>
+                        <td><div class="readonly">${item.wecom_nickname || '未获取'}</div></td>
+                        <td><input class="input" data-field="business_name" value="${item.business_name || ''}" placeholder="例如：张三妈妈"></td>
+                        <td>
+                            <div class="role-group">
+                                <button class="role-btn ${role === 'parent' ? 'active' : ''}" onclick="selectRole(this, 'parent')">家长</button>
+                                <button class="role-btn ${role === 'teacher' ? 'active' : ''}" onclick="selectRole(this, 'teacher')">老师</button>
+                            </div>
+                        </td>
+                        <td><input class="input" data-field="student_name" value="${studentName}" ${isParent ? '' : 'disabled'}></td>
+                        <td><input class="input" data-field="student_english_name" value="${studentEnglish}" ${isParent ? '' : 'disabled'}></td>
+                        <td><input class="input" data-field="student_class_room_id" value="${studentClass}" placeholder="${isParent ? '默认最近群' : ''}" ${isParent ? '' : 'disabled'}></td>
+                        <td><div class="readonly" title="${lastRoom}">${lastRoomName ? lastRoomName : '-'}</div></td>
+                        <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
+                    </tr>
+                `;
+            }
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function selectRole(btn, role) {
+        const row = btn.closest('tr');
+        row.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const enable = role === 'parent';
+        row.querySelectorAll('[data-field="student_name"], [data-field="student_english_name"], [data-field="student_class_room_id"]').forEach(input => {
+            input.disabled = !enable;
+            if (!enable) {
+                input.value = '';
+            }
+        });
+
+        if (enable) {
+            const classInput = row.querySelector('[data-field="student_class_room_id"]');
+            if (classInput && !classInput.value) {
+                const lastRoom = row.dataset.lastRoomid || '';
+                if (lastRoom) classInput.value = lastRoom;
+            }
+        }
+    }
+
+    async function saveMapping(originalId) {
+        const row = event.target.closest('tr');
+        return saveRow(row, false);
+    }
+
+    function collectRowPayload(row) {
+        const businessName = row.querySelector('[data-field="business_name"]').value.trim();
+        const requestBody = { business_name: businessName };
+
+        if (currentTab === 'user_id') {
+            const activeRole = row.querySelector('.role-btn.active');
+            if (!activeRole) {
+                showToast('请选择角色', true);
+                return null;
+            }
+            requestBody.user_role = activeRole.textContent.trim() === '家长' ? 'parent' : 'teacher';
+
+            if (requestBody.user_role === 'parent') {
+                requestBody.student_name = row.querySelector('[data-field="student_name"]').value.trim();
+                requestBody.student_english_name = row.querySelector('[data-field="student_english_name"]').value.trim();
+                requestBody.student_class_room_id = row.querySelector('[data-field="student_class_room_id"]').value.trim();
+            }
+        }
+        return requestBody;
+    }
+
+    async function saveRow(row, silent) {
+        const originalId = row.dataset.originalId;
+        const requestBody = collectRowPayload(row);
+        if (!requestBody) return false;
+
+        try {
+            const response = await fetch(`${API_BASE}/api/mappings/${currentTab}/${originalId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                row.classList.remove('unmapped');
+                const saveBtn = row.querySelector('.save-btn');
+                if (saveBtn) {
+                    saveBtn.classList.add('saved');
+                    saveBtn.textContent = '已保存';
+                }
+                if (!silent) {
+                    showToast('保存成功');
+                    loadStats();
+                }
+                return true;
+            } else {
+                if (!silent) showToast(result.message || '保存失败', true);
+                return false;
+            }
+        } catch (error) {
+            if (!silent) showToast('保存失败', true);
+            return false;
+        }
+    }
+
+    async function saveAll() {
+        if (currentTab !== 'user_id') return;
+        const rows = Array.from(document.querySelectorAll('tbody tr'));
+        if (rows.length === 0) return;
+        const targetRows = rows.filter(row => row.querySelector('[data-field="business_name"]'));
+        let success = 0;
+        let fail = 0;
+        for (const row of targetRows) {
+            const ok = await saveRow(row, true);
+            if (ok) {
+                success += 1;
+            } else {
+                fail += 1;
+            }
+        }
+        showToast(`批量保存完成：成功 ${success}，失败 ${fail}`, fail > 0);
+        loadStats();
+    }
+</script>
+</body>
+</html>
