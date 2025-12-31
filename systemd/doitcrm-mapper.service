@@ -1,0 +1,34 @@
+[Unit]
+Description=DoitCRM WeCom ID Mapper Service
+Documentation=https://github.com/doitcrm
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/doitcrm
+
+# 环境变量配置
+Environment="DB_HOST=localhost"
+Environment="DB_NAME=wechat_db"
+Environment="DB_USER=postgres"
+Environment="DB_PASSWORD=doit123"
+Environment="DB_PORT=5432"
+
+# 启动命令
+ExecStart=/usr/bin/python3 /root/doitcrm/wecom_id_mapper.py
+
+# 自动重启配置
+Restart=always
+RestartSec=10
+
+# 日志配置
+StandardOutput=append:/root/doitcrm/logs/mapper.log
+StandardError=append:/root/doitcrm/logs/mapper.error.log
+
+# 资源限制
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+# Flask 应用依赖（wecom_id_mapper.py, user_messages.py）
+Flask==3.0.0
+psycopg2-binary==2.9.11
+httpx==0.28.1
+
+# 家长分析系统依赖（parent_analyzer.py）
+requests==2.31.0
+python-dotenv==1.0.0
