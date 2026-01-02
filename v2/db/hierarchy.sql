@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS v2.classes (
     name TEXT NOT NULL,
     teacher_wecom_id TEXT,
     head_teacher_wecom_id TEXT,
+    start_time TEXT,
+    end_time TEXT,
+    course_progress TEXT,
+    promotion TEXT,
     max_students INTEGER,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -40,6 +44,11 @@ CREATE TABLE IF NOT EXISTS v2.classes (
 CREATE INDEX IF NOT EXISTS idx_levels_section ON v2.levels(section_id);
 CREATE INDEX IF NOT EXISTS idx_classes_level ON v2.classes(level_id);
 CREATE INDEX IF NOT EXISTS idx_classes_room ON v2.classes(room_id);
+
+ALTER TABLE v2.classes ADD COLUMN IF NOT EXISTS start_time TEXT;
+ALTER TABLE v2.classes ADD COLUMN IF NOT EXISTS end_time TEXT;
+ALTER TABLE v2.classes ADD COLUMN IF NOT EXISTS course_progress TEXT;
+ALTER TABLE v2.classes ADD COLUMN IF NOT EXISTS promotion TEXT;
 
 -- 初始化段
 INSERT INTO v2.sections (name, code, sort_order) VALUES
@@ -62,6 +71,9 @@ ON CONFLICT DO NOTHING;
 -- 为 v2.students 增加 class_id 并回填
 ALTER TABLE v2.students
 ADD COLUMN IF NOT EXISTS class_id INTEGER REFERENCES v2.classes(id);
+
+ALTER TABLE v2.students
+ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT '在读';
 
 -- 从已存在的 class_room_id 生成班级记录（默认 level=L1，可后续调整）
 INSERT INTO v2.classes (level_id, room_id, name)

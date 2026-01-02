@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级花名册维护</title>
+    <style>
+        :root {
+            --bg: #f5f2ec;
+            --card: #ffffff;
+            --ink: #1f2933;
+            --muted: #6b7280;
+            --accent: #1e9e8b;
+            --accent-strong: #167a6b;
+            --border: #e6e1d9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #efe7dd 0%, #f7f4ee 50%, #eef2f1 100%);
+            min-height: 100vh;
+            color: var(--ink);
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(25, 35, 45, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .header {
+            padding: 28px 32px;
+            background: linear-gradient(120deg, #0f766e 0%, #0ea5a4 50%, #1f9f84 100%);
+            color: #f8fafc;
+        }
+
+        .header h1 {
+            font-size: 26px;
+        }
+
+        .header p {
+            margin-top: 6px;
+            font-size: 13px;
+            color: rgba(248, 250, 252, 0.8);
+        }
+
+        .toolbar {
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar input[type="file"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-strong);
+        }
+
+        .btn-ghost {
+            background: #f2f1ed;
+            color: #2f3a40;
+        }
+
+        .stats {
+            padding: 12px 32px;
+            color: var(--muted);
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tabs {
+            padding: 16px 32px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .table-wrap {
+            padding: 16px 32px 32px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 10px;
+            background: #f7f4ee;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #efe9e1;
+            vertical-align: middle;
+        }
+
+        input.cell-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        textarea.sql-output {
+            width: 100%;
+            min-height: 240px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            background: #f9fafb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .import-result {
+            padding: 12px 32px;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 13px;
+            background: #f8fafc;
+        }
+
+        .import-result.success {
+            color: #0f766e;
+            background: #ecfdf3;
+        }
+
+        .import-result.error {
+            color: #b91c1c;
+            background: #fef2f2;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>班级花名册维护</h1>
+        <p>上传 CSV → 自动解析 → 可编辑 → 导入数据库/导出</p>
+    </div>
+
+    <div class="toolbar">
+        <input type="file" id="csv-file" accept=".csv" />
+        <button class="btn btn-primary" id="parse-btn">解析 CSV</button>
+        <button class="btn btn-primary" id="import-db">导入数据库</button>
+        <button class="btn btn-ghost" id="export-classes">导出班级 CSV</button>
+        <button class="btn btn-ghost" id="export-students">导出学员 CSV</button>
+        <button class="btn btn-primary" id="export-sql">导出 SQL</button>
+    </div>
+
+    <div class="stats" id="stats">
+        班级数：0 ｜ 学员数：0 ｜ 忽略单元格：0
+    </div>
+    <div class="import-result" id="import-result">导入结果：尚未提交。</div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="classes">班级</button>
+        <button class="tab-btn" data-tab="students">学员</button>
+        <button class="tab-btn" data-tab="sql">SQL</button>
+    </div>
+
+    <div class="table-wrap" id="classes-view"></div>
+    <div class="table-wrap hidden" id="students-view"></div>
+    <div class="table-wrap hidden" id="sql-view">
+        <textarea class="sql-output" id="sql-output" readonly></textarea>
+    </div>
+</div>
+
+<script>
+    const classesView = document.getElementById('classes-view');
+    const studentsView = document.getElementById('students-view');
+    const sqlOutput = document.getElementById('sql-output');
+    const stats = document.getElementById('stats');
+    const tabs = document.querySelectorAll('.tab-btn');
+    const importResult = document.getElementById('import-result');
+
+    let classRows = [];
+    let studentRows = [];
+    let ignoredCells = 0;
+
+    function parseCSV(text) {
+        const rows = [];
+        let row = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (char === '"' && inQuotes && next === '"') {
+                current += '"';
+                i++;
+                continue;
+            }
+
+            if (char === '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char === ',' && !inQuotes) {
+                row.push(current.trim());
+                current = '';
+                continue;
+            }
+
+            if ((char === '\n' || char === '\r') && !inQuotes) {
+                if (current.length || row.length) {
+                    row.push(current.trim());
+                    rows.push(row);
+                    row = [];
+                    current = '';
+                }
+                continue;
+            }
+
+            current += char;
+        }
+
+        if (current.length || row.length) {
+            row.push(current.trim());
+            rows.push(row);
+        }
+
+        return rows;
+    }
+
+    function normalizeClassName(name) {
+        if (!name) return '';
+        return name.replace(/[（(].*[)）]\s*$/, '').trim();
+    }
+
+    function normalizeSchedule(value) {
+        if (!value) return '';
+        let v = value.trim();
+        if (!v) return '';
+        const map = {
+            '一': '周一',
+            '二': '周二',
+            '三': '周三',
+            '四': '周四',
+            '五': '周五',
+            '六': '周六',
+            '日': '周日',
+            '天': '周日'
+        };
+        const head = v.charAt(0);
+        if (map[head]) {
+            v = map[head] + v.slice(1);
+        }
+        return v;
+    }
+
+    function parseStage(value) {
+        const result = { section: '', level: '' };
+        if (!value) return result;
+        const normalized = value.replace(/Ｌ/g, 'L');
+        const sectionMatch = normalized.match(/(一段|二段|三段)/);
+        const levelMatch = normalized.match(/(L\\d)/i);
+        if (sectionMatch) result.section = sectionMatch[1];
+        if (levelMatch) result.level = levelMatch[1].toUpperCase();
+        if (result.section && !result.level) {
+            const digitMatch = normalized.match(/([1-7])/);
+            if (digitMatch) result.level = `L${digitMatch[1]}`;
+        }
+        return result;
+    }
+
+    function extractNameStatus(value) {
+        if (!value) return null;
+        const trimmed = value.trim();
+        if (!trimmed || trimmed === '/' || trimmed === '／') return null;
+        const leftParenIndex = Math.min(
+            ...['（', '('].map(ch => {
+                const idx = trimmed.indexOf(ch);
+                return idx === -1 ? Infinity : idx;
+            })
+        );
+        if (leftParenIndex !== Infinity) {
+            const name = trimmed.slice(0, leftParenIndex).trim();
+            let status = trimmed.slice(leftParenIndex + 1).trim();
+            status = status.replace(/[)）]$/, '');
+            return { name, status: status || '在读' };
+        }
+        return { name: trimmed, status: '在读' };
+    }
+
+    function parseMatrix(rows) {
+        classRows = [];
+        studentRows = [];
+        ignoredCells = 0;
+
+        if (!rows.length) return;
+        const header = rows[0];
+        const classHeaders = header.slice(1).map(normalizeClassName);
+
+        classRows = classHeaders.map((name, index) => ({
+            id: index,
+            class_name: name,
+            section: '',
+            level: '',
+            room_id: '',
+            teacher: '',
+            head_teacher: '',
+            start_time: '',
+            end_time: '',
+            course_progress: '',
+            promotion: ''
+        }));
+
+        const labelMap = {
+            '主教老师': 'teacher',
+            '主教': 'teacher',
+            '班主任': 'head_teacher',
+            '上课时间': 'start_time',
+            '下课时间': 'end_time',
+            '所在阶段': 'stage',
+            '升段升班情况': 'promotion',
+            '升级升班情况': 'promotion',
+            '课程进度': 'course_progress',
+            'room_id': 'room_id',
+            'roomid': 'room_id',
+            '群ID': 'room_id',
+            '群组ID': 'room_id'
+        };
+
+        rows.slice(1).forEach((row) => {
+            const label = (row[0] || '').trim();
+            if (!label) return;
+
+            if (label.startsWith('学员') || label.startsWith('学生')) {
+                row.slice(1).forEach((cell, idx) => {
+                    const entry = extractNameStatus(cell);
+                    if (!entry) {
+                        ignoredCells += 1;
+                        return;
+                    }
+                    const cls = classRows[idx];
+                    if (!cls) return;
+                    studentRows.push({
+                        class_name: cls.class_name,
+                        section: cls.section,
+                        level: cls.level,
+                        room_id: cls.room_id,
+                        student_name: entry.name,
+                        student_english_name: '',
+                        student_status: entry.status || '在读'
+                    });
+                });
+                return;
+            }
+
+            const mapped = labelMap[label];
+            if (!mapped) return;
+
+            row.slice(1).forEach((cell, idx) => {
+                const cls = classRows[idx];
+                if (!cls) return;
+                const value = (cell || '').trim();
+                if (mapped === 'stage') {
+                    const stage = parseStage(value);
+                    cls.section = stage.section;
+                    cls.level = stage.level;
+                } else if (mapped === 'start_time') {
+                    cls.start_time = normalizeSchedule(value);
+                } else if (mapped === 'end_time') {
+                    cls.end_time = normalizeSchedule(value);
+                } else if (mapped === 'room_id') {
+                    cls.room_id = value;
+                } else if (mapped === 'course_progress') {
+                    cls.course_progress = value;
+                } else if (mapped === 'promotion') {
+                    cls.promotion = value;
+                } else if (mapped === 'teacher') {
+                    cls.teacher = value;
+                } else if (mapped === 'head_teacher') {
+                    cls.head_teacher = value;
+                }
+            });
+        });
+
+        renderClasses();
+        renderStudents();
+        updateStats();
+    }
+
+    function updateStats() {
+        stats.textContent = `班级数：${classRows.length} ｜ 学员数：${studentRows.length} ｜ 忽略单元格：${ignoredCells}`;
+    }
+
+    function setImportStatus(message, status) {
+        importResult.textContent = message;
+        importResult.classList.remove('success', 'error');
+        if (status) {
+            importResult.classList.add(status);
+        }
+    }
+
+    function renderClasses() {
+        let html = '<table><thead><tr>';
+        const headers = ['段', '阶', '班级名', 'room_id', '主教', '班主任', '上课时间', '下课时间', '课程进度', '升段升班情况'];
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr></thead><tbody>';
+
+        classRows.forEach((row, index) => {
+            html += `<tr>
+                <td><input class="cell-input" data-field="section" data-index="${index}" value="${row.section || ''}"></td>
+                <td><input class="cell-input" data-field="level" data-index="${index}" value="${row.level || ''}"></td>
+                <td><input class="cell-input" data-field="class_name" data-index="${index}" value="${row.class_name || ''}"></td>
+                <td><input class="cell-input" data-field="room_id" data-index="${index}" value="${row.room_id || ''}"></td>
+                <td><input class="cell-input" data-field="teacher" data-index="${index}" value="${row.teacher || ''}"></td>
+                <td><input class="cell-input" data-field="head_teacher" data-index="${index}" value="${row.head_teacher || ''}"></td>
+                <td><input class="cell-input" data-field="start_time" data-index="${index}" value="${row.start_time || ''}"></td>
+                <td><input class="cell-input" data-field="end_time" data-index="${index}" value="${row.end_time || ''}"></td>
+                <td><input class="cell-input" data-field="course_progress" data-index="${index}" value="${row.course_progress || ''}"></td>
+                <td><input class="cell-input" data-field="promotion" data-index="${index}" value="${row.promotion || ''}"></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        classesView.innerHTML = html;
+        classesView.querySelectorAll('.cell-input').forEach(input => {
+            input.addEventListener('input', () => {
+                const idx = Number(input.dataset.index);
+                const field = input.dataset.field;
+                classRows[idx][field] = input.value.trim();
+            });
+        });
+    }
+
+    function renderStudents() {
+        let html = '<table><thead><tr>';
+        const headers = ['班级名', '段', '阶', 'room_id', '学员姓名', '英文名', '状态'];
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr></thead><tbody>';
+
+        studentRows.forEach((row, index) => {
+            html += `<tr>
+                <td><input class="cell-input" data-field="class_name" data-index="${index}" value="${row.class_name || ''}"></td>
+                <td><input class="cell-input" data-field="section" data-index="${index}" value="${row.section || ''}"></td>
+                <td><input class="cell-input" data-field="level" data-index="${index}" value="${row.level || ''}"></td>
+                <td><input class="cell-input" data-field="room_id" data-index="${index}" value="${row.room_id || ''}"></td>
+                <td><input class="cell-input" data-field="student_name" data-index="${index}" value="${row.student_name || ''}"></td>
+                <td><input class="cell-input" data-field="student_english_name" data-index="${index}" value="${row.student_english_name || ''}"></td>
+                <td><input class="cell-input" data-field="student_status" data-index="${index}" value="${row.student_status || '在读'}"></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        studentsView.innerHTML = html;
+        studentsView.querySelectorAll('.cell-input').forEach(input => {
+            input.addEventListener('input', () => {
+                const idx = Number(input.dataset.index);
+                const field = input.dataset.field;
+                studentRows[idx][field] = input.value.trim();
+            });
+        });
+    }
+
+    function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function toCSV(rows, headers) {
+        const escape = (value) => {
+            const str = value == null ? '' : String(value);
+            if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+        const lines = [];
+        lines.push(headers.map(escape).join(','));
+        rows.forEach(row => {
+            const line = headers.map(h => escape(row[h] || '')).join(',');
+            lines.push(line);
+        });
+        return lines.join('\n');
+    }
+
+    function exportClassesCSV() {
+        const headers = ['section', 'level', 'class_name', 'room_id', 'teacher', 'head_teacher', 'start_time', 'end_time', 'course_progress', 'promotion'];
+        const csv = toCSV(classRows, headers);
+        downloadFile(csv, 'classes_export.csv');
+    }
+
+    function exportStudentsCSV() {
+        const headers = ['class_name', 'section', 'level', 'room_id', 'student_name', 'student_english_name', 'student_status'];
+        const csv = toCSV(studentRows, headers);
+        downloadFile(csv, 'students_export.csv');
+    }
+
+    function generateSQL() {
+        const lines = [];
+        lines.push('-- 班级');
+        classRows.forEach(cls => {
+            const level = cls.level || 'L1';
+            const roomId = cls.room_id ? `'${cls.room_id.replace(/'/g, "''")}'` : 'NULL';
+            const className = cls.class_name.replace(/'/g, "''");
+            const teacher = cls.teacher ? `'${cls.teacher.replace(/'/g, "''")}'` : 'NULL';
+            const headTeacher = cls.head_teacher ? `'${cls.head_teacher.replace(/'/g, "''")}'` : 'NULL';
+            const startTime = cls.start_time ? `'${cls.start_time.replace(/'/g, "''")}'` : 'NULL';
+            const endTime = cls.end_time ? `'${cls.end_time.replace(/'/g, "''")}'` : 'NULL';
+            const course = cls.course_progress ? `'${cls.course_progress.replace(/'/g, "''")}'` : 'NULL';
+            const promotion = cls.promotion ? `'${cls.promotion.replace(/'/g, "''")}'` : 'NULL';
+            lines.push(
+                `INSERT INTO v2.classes (level_id, room_id, name, teacher_wecom_id, head_teacher_wecom_id, start_time, end_time, course_progress, promotion)\n` +
+                `VALUES ((SELECT id FROM v2.levels WHERE name='${level}'), ${roomId}, '${className}', ${teacher}, ${headTeacher}, ${startTime}, ${endTime}, ${course}, ${promotion})\n` +
+                `ON CONFLICT (room_id) DO UPDATE SET name = EXCLUDED.name, start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, course_progress = EXCLUDED.course_progress, promotion = EXCLUDED.promotion;`
+            );
+        });
+
+        lines.push('\n-- 学员');
+        studentRows.forEach(stu => {
+            const name = stu.student_name.replace(/'/g, "''");
+            const english = stu.student_english_name ? `'${stu.student_english_name.replace(/'/g, "''")}'` : 'NULL';
+            const roomId = stu.room_id ? `'${stu.room_id.replace(/'/g, "''")}'` : 'NULL';
+            const statusValue = stu.student_status ? `'${stu.student_status.replace(/'/g, "''")}'` : `'在读'`;
+            const statusNote = stu.student_status ? ` -- 状态: ${stu.student_status}` : ' -- 状态: 在读';
+            lines.push(
+                `INSERT INTO v2.students (name, english_name, class_room_id, class_id, status)\n` +
+                `VALUES ('${name}', ${english}, ${roomId}, (SELECT id FROM v2.classes WHERE room_id=${roomId} LIMIT 1), ${statusValue})\n` +
+                `ON CONFLICT DO NOTHING;${statusNote}`
+            );
+        });
+
+        return lines.join('\n');
+    }
+
+    function exportSQL() {
+        const sql = generateSQL();
+        sqlOutput.value = sql;
+        downloadFile(sql, 'roster_export.sql');
+    }
+
+    document.getElementById('parse-btn').addEventListener('click', () => {
+        const fileInput = document.getElementById('csv-file');
+        const file = fileInput.files[0];
+        if (!file) {
+            setImportStatus('请先选择 CSV 文件。', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const rows = parseCSV(event.target.result);
+            parseMatrix(rows);
+            sqlOutput.value = generateSQL();
+            setImportStatus('解析完成，可编辑后导入数据库。');
+        };
+        reader.readAsText(file, 'utf-8');
+    });
+
+    document.getElementById('import-db').addEventListener('click', async () => {
+        if (!classRows.length && !studentRows.length) {
+            setImportStatus('请先解析 CSV，再导入数据库。', 'error');
+            return;
+        }
+        setImportStatus('正在导入数据库，请稍候...');
+        try {
+            const response = await fetch('/api/roster/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    classes: classRows,
+                    students: studentRows
+                })
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                const message = data.message || '导入失败，请检查服务日志。';
+                setImportStatus(`导入失败：${message}`, 'error');
+                return;
+            }
+            const classSummary = `班级新增${data.classes.inserted} / 更新${data.classes.updated} / 跳过${data.classes.skipped}`;
+            const studentSummary = `学员新增${data.students.inserted} / 更新${data.students.updated} / 跳过${data.students.skipped} / 未匹配班级${data.students.no_class}`;
+            const fallback = data.fallback_levels.length
+                ? `；未识别阶级已回退：${data.fallback_levels.join(', ')}`
+                : '';
+            setImportStatus(`导入成功：${classSummary}；${studentSummary}${fallback}`, 'success');
+        } catch (err) {
+            setImportStatus(`导入失败：${err.message}`, 'error');
+        }
+    });
+
+    document.getElementById('export-classes').addEventListener('click', exportClassesCSV);
+    document.getElementById('export-students').addEventListener('click', exportStudentsCSV);
+    document.getElementById('export-sql').addEventListener('click', exportSQL);
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.dataset.tab;
+            classesView.classList.toggle('hidden', target !== 'classes');
+            studentsView.classList.toggle('hidden', target !== 'students');
+            document.getElementById('sql-view').classList.toggle('hidden', target !== 'sql');
+        });
+    });
+</script>
+</body>
+</html>

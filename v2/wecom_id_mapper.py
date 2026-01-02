@@ -359,9 +359,11 @@ def get_mappings(id_type):
                     lr.roomid AS last_roomid,
                     lr.msgtime AS last_room_time,
                     COALESCE(NULLIF(lr.business_name, ''), NULLIF(lr.wecom_nickname, ''), lr.roomid) AS last_room_name,
+                    s.id AS student_id,
                     s.name AS student_name,
                     s.english_name AS student_english_name,
-                    s.class_room_id AS student_class_room_id
+                    COALESCE(c.name, s.class_room_id) AS student_class_name,
+                    COALESCE(c.room_id, s.class_room_id) AS student_class_room_id
                 FROM v2.wecom_id_mappings m
                 LEFT JOIN LATERAL (
                     SELECT
@@ -381,6 +383,8 @@ def get_mappings(id_type):
                     ON rel.wecom_id = m.id AND rel.is_primary = TRUE
                 LEFT JOIN v2.students s
                     ON s.id = rel.student_id
+                LEFT JOIN v2.classes c
+                    ON c.id = s.class_id
                 WHERE {where_sql}
                 ORDER BY
                     CASE WHEN m.business_name IS NULL OR m.business_name = '' THEN 1 ELSE 0 END,
@@ -410,6 +414,7 @@ def update_mapping(id_type, original_id):
     student_name = (data.get("student_name") or "").strip()
     student_english_name = (data.get("student_english_name") or "").strip()
     student_class_room_id = (data.get("student_class_room_id") or "").strip()
+    student_id = data.get("student_id")
 
     try:
         conn = get_db_connection()
@@ -445,38 +450,18 @@ def update_mapping(id_type, original_id):
         wecom_id = row[0]
 
         if id_type == "user_id":
-            if user_role == "parent" and student_name:
-                cur.execute(
-                    """
-                    SELECT id FROM v2.students
-                    WHERE name = %s
-                      AND (english_name IS NOT DISTINCT FROM %s)
-                      AND (class_room_id IS NOT DISTINCT FROM %s)
-                    """,
-                    (
-                        student_name,
-                        student_english_name or None,
-                        student_class_room_id or None,
-                    ),
-                )
-                student_row = cur.fetchone()
-                if student_row:
-                    student_id = student_row[0]
-                else:
-                    cur.execute(
-                        """
-                        INSERT INTO v2.students (name, english_name, class_room_id, created_at, updated_at)
-                        VALUES (%s, %s, %s, NOW(), NOW())
-                        RETURNING id
-                        """,
-                        (
-                            student_name,
-                            student_english_name or None,
-                            student_class_room_id or None,
-                        ),
-                    )
-                    student_id = cur.fetchone()[0]
-
+            if user_role == "parent":
+                if not student_id:
+                    conn.rollback()
+                    cur.close()
+                    conn.close()
+                    return jsonify({"status": "error", "message": "请选择花名册中的学员"}), 400
+                cur.execute("SELECT id FROM v2.students WHERE id = %s", (student_id,))
+                if not cur.fetchone():
+                    conn.rollback()
+                    cur.close()
+                    conn.close()
+                    return jsonify({"status": "error", "message": "学员不存在或未导入花名册"}), 400
                 cur.execute("DELETE FROM v2.wecom_user_student_rel WHERE wecom_id = %s", (wecom_id,))
                 cur.execute(
                     """
@@ -685,6 +670,63 @@ def get_user_groups(user_id):
         return jsonify(
             {"status": "success", "user_id": user_id, "group_count": len(groups), "groups": groups}
         )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/students", methods=["GET"])
+def search_students():
+    keyword = (request.args.get("keyword") or "").strip()
+    class_room_id = (request.args.get("class_room_id") or "").strip()
+    limit = min(int(request.args.get("limit", 50)), 200)
+
+    if not keyword and not class_room_id:
+        return jsonify({"status": "error", "message": "请输入学员关键词"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        params = []
+        where_clauses = []
+        if keyword:
+            like = f"%{keyword}%"
+            where_clauses.append(
+                "(s.name ILIKE %s OR s.english_name ILIKE %s)"
+            )
+            params.extend([like, like])
+        if class_room_id:
+            where_clauses.append(
+                "(c.room_id = %s OR c.name ILIKE %s OR s.class_room_id = %s)"
+            )
+            params.extend([class_room_id, f"%{class_room_id}%", class_room_id])
+
+        where_sql = " AND ".join(where_clauses) if where_clauses else "TRUE"
+
+        cur.execute(
+            f"""
+            SELECT
+                s.id,
+                s.name,
+                s.english_name,
+                s.status,
+                COALESCE(c.name, s.class_room_id) AS class_name,
+                COALESCE(c.room_id, s.class_room_id) AS class_room_id
+            FROM v2.students s
+            LEFT JOIN v2.classes c
+                ON c.id = s.class_id
+            WHERE {where_sql}
+            ORDER BY s.name
+            LIMIT %s
+            """,
+            params + [limit],
+        )
+
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return jsonify({"status": "success", "count": len(results), "students": results})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

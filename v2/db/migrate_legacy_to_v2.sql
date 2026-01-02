@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS v2.students (
     name TEXT NOT NULL,
     english_name TEXT,
     class_room_id TEXT,
+    status TEXT NOT NULL DEFAULT '在读',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -159,6 +160,7 @@ INSERT INTO v2.students (
     name,
     english_name,
     class_room_id,
+    status,
     created_at,
     updated_at
 )
@@ -166,6 +168,7 @@ SELECT
     student_name,
     NULLIF(student_english_name, ''),
     NULLIF(student_class_room_id, ''),
+    '在读',
     NOW(),
     NOW()
 FROM _student_src;

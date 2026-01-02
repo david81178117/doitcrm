@@ -11,6 +11,8 @@ This is a clean, rebuilt workspace for the WeCom chat log pipeline. The goal is 
 - `wecom_id_mapper.html`: v2 mapping UI.
 - `user_messages.py`: v2 user message search service (API + web UI).
 - `user_messages.html`: v2 user message UI.
+- `roster.html`: CSV 花名册维护前端（上传/编辑/导出）。
+- `roster.py`: CSV 花名册导入服务（写入 v2.classes + v2.students）。
 
 ## Data dictionary (core)
 
@@ -22,7 +24,7 @@ This is a clean, rebuilt workspace for the WeCom chat log pipeline. The goal is 
 - `user_role` enum: `parent`, `teacher`, `head_teacher`, `advisor`
 
 `students`
-- `name`, `english_name`, `class_room_id`, `created_at`, `updated_at`
+- `name`, `english_name`, `class_room_id`, `status`, `created_at`, `updated_at`
 
 `wecom_user_student_rel`
 - `wecom_id`, `student_id`, `relation`, `is_primary`, `created_at`
@@ -62,6 +64,19 @@ PORT=5006 python3 user_messages.py
 ```
 
 Open `http://localhost:5006` to use the UI.
+
+## Roster Import UI (v2)
+
+```bash
+export DB_NAME="wechat_db_legacy"
+export DB_HOST="localhost"
+export DB_PORT="5432"
+export DB_USER="postgres"
+export DB_PASSWORD="doit123"
+PORT=5010 python3 roster.py
+```
+
+Open `http://localhost:5010` to upload CSV and import into the database.
 
 ## Legacy migration (SQL)
 

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS students (
     name TEXT NOT NULL,
     english_name TEXT,
     class_room_id TEXT,
+    status TEXT NOT NULL DEFAULT '在读',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -246,6 +246,38 @@
             background: #2f855a;
         }
 
+        .student-picker {
+            position: relative;
+        }
+
+        .student-dropdown {
+            position: absolute;
+            top: 34px;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 30;
+        }
+
+        .student-option {
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .student-option:hover {
+            background: #f2f1ed;
+        }
+
+        .hidden {
+            display: none;
+        }
+
         .toast {
             position: fixed;
             top: 24px;
@@ -483,7 +515,7 @@
                 <th style="width: 12%;">角色</th>
                 <th style="width: 14%;">学员姓名</th>
                 <th style="width: 12%;">英文名</th>
-                <th style="width: 12%;">班级 roomid</th>
+                <th style="width: 12%;">班级</th>
                 <th style="width: 8%;">最近群</th>
                 <th style="width: 10%;">操作</th>
             `;
@@ -509,7 +541,8 @@
                 const isParent = role === 'parent';
                 const studentName = item.student_name || '';
                 const studentEnglish = item.student_english_name || '';
-                const studentClass = item.student_class_room_id || '';
+                const studentClassName = item.student_class_name || '';
+                const studentClassRoomId = item.student_class_room_id || '';
                 const lastRoom = item.last_roomid || '';
                 const lastRoomName = item.last_room_name || lastRoom || '';
                 html += `
@@ -523,9 +556,15 @@
                                 <button class="role-btn ${role === 'teacher' ? 'active' : ''}" onclick="selectRole(this, 'teacher')">老师</button>
                             </div>
                         </td>
-                        <td><input class="input" data-field="student_name" value="${studentName}" ${isParent ? '' : 'disabled'}></td>
-                        <td><input class="input" data-field="student_english_name" value="${studentEnglish}" ${isParent ? '' : 'disabled'}></td>
-                        <td><input class="input" data-field="student_class_room_id" value="${studentClass}" placeholder="${isParent ? '默认最近群' : ''}" ${isParent ? '' : 'disabled'}></td>
+                        <td>
+                            <div class="student-picker">
+                                <input class="input student-search" data-field="student_name" value="${studentName}" placeholder="输入学员姓名" ${isParent ? '' : 'disabled'}>
+                                <div class="student-dropdown hidden"></div>
+                                <input type="hidden" data-field="student_id" value="${item.student_id || ''}">
+                            </div>
+                        </td>
+                        <td><div class="readonly" data-field="student_english_name">${studentEnglish || '-'}</div></td>
+                        <td><div class="readonly" data-field="student_class_room_id" title="${studentClassRoomId}">${studentClassName || studentClassRoomId || '-'}</div></td>
                         <td><div class="readonly" title="${lastRoom}">${lastRoomName ? lastRoomName : '-'}</div></td>
                         <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
                     </tr>
@@ -535,6 +574,7 @@
 
         html += '</tbody></table>';
         container.innerHTML = html;
+        attachStudentPickers();
     }
 
     function selectRole(btn, role) {
@@ -543,20 +583,23 @@
         btn.classList.add('active');
 
         const enable = role === 'parent';
-        row.querySelectorAll('[data-field="student_name"], [data-field="student_english_name"], [data-field="student_class_room_id"]').forEach(input => {
+        row.querySelectorAll('[data-field="student_name"]').forEach(input => {
             input.disabled = !enable;
             if (!enable) {
                 input.value = '';
             }
         });
-
-        if (enable) {
-            const classInput = row.querySelector('[data-field="student_class_room_id"]');
-            if (classInput && !classInput.value) {
-                const lastRoom = row.dataset.lastRoomid || '';
-                if (lastRoom) classInput.value = lastRoom;
+        row.querySelectorAll('[data-field="student_id"]').forEach(input => {
+            if (!enable) {
+                input.value = '';
             }
-        }
+        });
+        row.querySelectorAll('[data-field="student_english_name"], [data-field="student_class_room_id"]').forEach(node => {
+            if (!enable) {
+                node.textContent = '-';
+                node.title = '';
+            }
+        });
     }
 
     async function saveMapping(originalId) {
@@ -577,12 +620,83 @@
             requestBody.user_role = activeRole.textContent.trim() === '家长' ? 'parent' : 'teacher';
 
             if (requestBody.user_role === 'parent') {
-                requestBody.student_name = row.querySelector('[data-field="student_name"]').value.trim();
-                requestBody.student_english_name = row.querySelector('[data-field="student_english_name"]').value.trim();
-                requestBody.student_class_room_id = row.querySelector('[data-field="student_class_room_id"]').value.trim();
+                const studentId = row.querySelector('[data-field="student_id"]').value.trim();
+                if (!studentId) {
+                    showToast('请选择花名册中的学员', true);
+                    return null;
+                }
+                requestBody.student_id = studentId;
             }
         }
         return requestBody;
+    }
+
+    function attachStudentPickers() {
+        document.querySelectorAll('.student-search').forEach(input => {
+            let timer = null;
+            const dropdown = input.parentElement.querySelector('.student-dropdown');
+
+            function hideDropdown() {
+                dropdown.classList.add('hidden');
+                dropdown.innerHTML = '';
+            }
+
+            async function loadStudents(keyword) {
+                if (!keyword) {
+                    hideDropdown();
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_BASE}/api/students?keyword=${encodeURIComponent(keyword)}`);
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        hideDropdown();
+                        return;
+                    }
+                    dropdown.innerHTML = data.students.map(stu => {
+                        const label = `${stu.name}${stu.english_name ? ' / ' + stu.english_name : ''} ｜ ${stu.class_name || '-'} ｜ ${stu.status || '在读'}`;
+                        return `<div class="student-option" data-id="${stu.id}" data-name="${stu.name}" data-english="${stu.english_name || ''}" data-class-name="${stu.class_name || ''}" data-class-room="${stu.class_room_id || ''}" title="${label}">${label}</div>`;
+                    }).join('');
+                    if (!data.students.length) {
+                        dropdown.innerHTML = '<div class="student-option">未找到学员</div>';
+                    }
+                    dropdown.classList.remove('hidden');
+                } catch (error) {
+                    hideDropdown();
+                }
+            }
+
+            input.addEventListener('input', () => {
+                if (input.disabled) return;
+                clearTimeout(timer);
+                const keyword = input.value.trim();
+                if (!keyword) {
+                    hideDropdown();
+                    return;
+                }
+                timer = setTimeout(() => loadStudents(keyword), 250);
+            });
+
+            dropdown.addEventListener('click', (event) => {
+                const option = event.target.closest('.student-option');
+                if (!option || !option.dataset.id) return;
+                const row = input.closest('tr');
+                row.querySelector('[data-field="student_id"]').value = option.dataset.id;
+                input.value = option.dataset.name;
+                const englishNode = row.querySelector('[data-field="student_english_name"]');
+                englishNode.textContent = option.dataset.english || '-';
+                const classNode = row.querySelector('[data-field="student_class_room_id"]');
+                const className = option.dataset.className || '';
+                const classRoom = option.dataset.classRoom || '';
+                classNode.textContent = className || classRoom || '-';
+                classNode.title = classRoom || '';
+                hideDropdown();
+            });
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => hideDropdown(), 150);
+            });
+        });
     }
 
     async function saveRow(row, silent) {
