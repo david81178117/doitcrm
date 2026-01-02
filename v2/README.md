@@ -9,6 +9,8 @@ This is a clean, rebuilt workspace for the WeCom chat log pipeline. The goal is 
 - `db/migrate_legacy_to_v2.sql`: pure SQL migration from legacy schema into v2.
 - `wecom_id_mapper.py`: v2 mapping service (API + web UI).
 - `wecom_id_mapper.html`: v2 mapping UI.
+- `user_messages.py`: v2 user message search service (API + web UI).
+- `user_messages.html`: v2 user message UI.
 
 ## Data dictionary (core)
 
@@ -47,6 +49,19 @@ python3 wecom_id_mapper.py
 ```
 
 Open `http://localhost:5004` to use the UI.
+
+## User Messages UI (v2)
+
+```bash
+export DB_NAME="wechat_db_legacy"
+export DB_HOST="localhost"
+export DB_PORT="5432"
+export DB_USER="postgres"
+export DB_PASSWORD="doit123"
+PORT=5006 python3 user_messages.py
+```
+
+Open `http://localhost:5006` to use the UI.
 
 ## Legacy migration (SQL)
 

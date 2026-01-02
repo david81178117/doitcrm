@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户消息查询系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-content > div:first-child {
+            text-align: left;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .version-input-container {
+            flex-shrink: 0;
+        }
+
+        .version-input {
+            width: 120px;
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .version-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .version-input:focus {
+            outline: none;
+            border-color: white;
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 查询表单样式 */
+        .query-form {
+            padding: 30px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-row-single {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 15px;
+            flex-wrap: nowrap;
+        }
+
+        .form-row-single .form-group {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .form-row-single .form-group:last-child {
+            flex: 0 0 auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group-wide {
+            flex: 2;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .compact-select {
+            min-width: 120px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 用户选择区域样式 */
+        .user-selection {
+            padding: 20px 30px;
+            background: #fff3cd;
+            border-bottom: 1px solid #ffd700;
+        }
+
+        .user-selection-header {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-item {
+            padding: 15px 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .user-item-main {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .user-item-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .user-item-role {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .user-item-id {
+            font-size: 12px;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* 已选用户信息 */
+        .selected-user-info {
+            padding: 15px 30px;
+            background: #e3f2fd;
+            border-bottom: 1px solid #90caf9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-user-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .selected-user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .selected-user-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .selected-user-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .selected-user-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 消息容器样式 */
+        .messages-container {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        /* 3列网格布局 */
+        #messages-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #667eea;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 对话卡片样式 */
+        .conversation-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .conversation-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .group-conversation {
+            border-left: 4px solid #7b1fa2;
+        }
+
+        .private-conversation {
+            border-left: 4px solid #1976d2;
+        }
+
+        .conversation-header {
+            padding: 20px;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .conversation-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .conversation-icon {
+            font-size: 24px;
+        }
+
+        .conversation-title h3 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .conversation-meta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .messages-list {
+            padding: 15px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* 美化滚动条 */
+        .messages-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .messages-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .messages-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .message-item {
+            display: grid;
+            grid-template-columns: 140px 60px 1fr;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .message-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 发送的消息 */
+        .message-sent {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        /* 接收的消息 */
+        .message-received {
+            background: #f5f5f5;
+            border-left: 3px solid #9e9e9e;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .message-content {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        /* 学员信息样式 */
+        .student-info-section {
+            margin-top: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .student-info-header {
+            margin-bottom: 15px;
+        }
+
+        .student-info-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .student-info-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .student-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .student-field label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .student-field input {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .student-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .student-field-actions {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        /* Toast通知 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            #messages-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row-single {
+                flex-wrap: wrap;
+            }
+
+            .student-info-fields {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .student-field-actions {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .student-info-fields {
+                grid-template-columns: 1fr;
+            }
+            #messages-container {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row-single {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .message-item {
+                grid-template-columns: 1fr;
+            }
+
+            .conversation-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        /* AI总结区域样式 */
+        .ai-summary-section {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.1);
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #d0e7ff;
+        }
+
+        .summary-header h4 {
+            margin: 0;
+            color: #2c5aa0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .summary-meta {
+            font-size: 12px;
+            color: #666;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .summary-content {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .summary-loading {
+            text-align: center;
+            padding: 40px;
+            color: #4a90e2;
+        }
+
+        .summary-loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .summary-error {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            color: #856404;
+        }
+
+        #ai-summary-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #ai-summary-spinner {
+            margin-left: 5px;
+            animation: spin 1s linear infinite;
+        }
+
+        .multi-users-section {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            max-height: 320px;
+            overflow-y: auto;
+            background: #fffdfa;
+        }
+
+        .multi-users-section.hidden {
+            display: none;
+        }
+
+        .multi-users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .multi-user-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 10px;
+        }
+
+        .multi-user-item {
+            padding: 10px 12px;
+            background: #f9fafb;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            gap: 10px;
+        }
+
+        .multi-user-item.selected {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+        .multi-user-item:hover {
+            border-color: #667eea;
+        }
+
+        .multi-user-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .multi-messages-section {
+            padding: 20px 30px 30px;
+            background: #fff;
+            display: none;
+        }
+
+        .multi-messages-content {
+            background: #f9fafb;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 260px;
+            max-height: 520px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .multi-analysis-section {
+            margin-top: 16px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+            border-radius: 12px;
+            padding: 18px;
+            border: 2px solid #4a90e2;
+            display: none;
+        }
+
+        .multi-analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #d0e7ff;
+        }
+
+        .multi-analysis-content {
+            background: white;
+            padding: 14px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>📨 用户消息查询系统</h1>
+                    <p>查询企业微信用户消息，按对话分组展示</p>
+                </div>
+                <div class="version-input-container">
+                    <input type="text" id="version-input" placeholder="版本" class="version-input" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+
+        <!-- 查询表单 -->
+        <div class="query-form">
+            <div class="form-row-single">
+                <div class="form-group form-group-wide">
+                    <label for="user-name-input">用户 / 学员 / ID</label>
+                    <input
+                        type="text"
+                        id="user-name-input"
+                        placeholder="支持用户姓名、学员姓名、用户ID"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="section-select">段</label>
+                    <select id="section-select" class="compact-select">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="level-select">阶</label>
+                    <select id="level-select" class="compact-select">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="class-select">班级</label>
+                    <select id="class-select" class="compact-select">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="start-time-input">开始时间</label>
+                    <input type="datetime-local" id="start-time-input" />
+                </div>
+                <div class="form-group">
+                    <label for="end-time-input">结束时间</label>
+                    <input type="datetime-local" id="end-time-input" />
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-secondary" onclick="resetTimeRange()">重置为默认（30天）</button>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="applyMultiFilters()">筛选</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="multi-users-section" class="multi-users-section hidden">
+            <div class="multi-users-header">
+                <div>筛选结果 (<span id="multi-user-count">0</span>人)</div>
+                <div>
+                    <label><input type="checkbox" id="multi-select-all" onchange="toggleMultiSelectAll()"> 全选</label>
+                </div>
+            </div>
+            <div id="multi-user-list" class="multi-user-list"></div>
+        </div>
+
+        <div class="multi-messages-section">
+            <div class="messages-header">
+                聊天记录汇总
+                <button class="btn btn-secondary" id="multi-aggregate-btn" onclick="viewMultiMessages()" disabled style="margin-left: 20px;">汇总内容</button>
+                <button class="btn btn-primary" id="multi-analysis-btn" onclick="runMultiAnalysis()" disabled style="margin-left: 10px;">智能总结</button>
+            </div>
+            <div id="multi-messages-content" class="multi-messages-content">
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">💬</div>
+                    <div style="font-size: 16px;">请先筛选用户并查看聊天记录</div>
+                </div>
+            </div>
+            <div id="multi-analysis-section" class="multi-analysis-section">
+                <div class="multi-analysis-header">
+                    <h4>🤖 AI智能总结</h4>
+                    <span class="analysis-meta" id="multi-analysis-meta"></span>
+                </div>
+                <div class="multi-analysis-content" id="multi-analysis-content"></div>
+            </div>
+        </div>
+
+        <!-- 用户选择区域（同名处理）-->
+        <div id="user-selection-area" style="display: none;">
+            <div class="user-selection">
+                <div class="user-selection-header" id="user-selection-header">
+                    发现多个匹配用户，请选择：
+                </div>
+                <div class="user-list" id="user-list"></div>
+            </div>
+        </div>
+
+        <!-- 已选用户信息 -->
+        <div id="selected-user-info" style="display: none;">
+            <div class="selected-user-info">
+                <div class="selected-user-details">
+                    <div class="selected-user-avatar" id="user-avatar">👤</div>
+                    <div class="selected-user-text">
+                        <div class="selected-user-name" id="user-display-name">张三</div>
+                        <div class="selected-user-meta">
+                            <span id="user-role-text">家长</span> ·
+                            <span id="user-id-text">wmqDzZEw...</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-sm" id="ai-summary-btn" onclick="handleAISummary()">
+                        <span id="ai-summary-text">智能总结</span>
+                        <span id="ai-summary-spinner" style="display:none;">⏳</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 学员信息输入区域（仅家长角色显示） -->
+            <div class="student-info-section" id="student-info-section" style="display: none;">
+                <div class="student-info-header">
+                    <h4>👨‍🎓 学员信息</h4>
+                </div>
+                <div class="student-info-fields">
+                    <div class="student-field">
+                        <label for="student-name-input">学员姓名</label>
+                        <input type="text" id="student-name-input" placeholder="请输入学员姓名" />
+                    </div>
+                    <div class="student-field">
+                        <label for="student-english-name-input">学员英文名</label>
+                        <input type="text" id="student-english-name-input" placeholder="请输入英文名" />
+                    </div>
+                    <div class="student-field">
+                        <label for="student-class-room-id-input">在读班级 (Room ID)</label>
+                        <input type="text" id="student-class-room-id-input" placeholder="请输入班级Room ID" />
+                    </div>
+                    <div class="student-field-actions">
+                        <button class="btn btn-primary btn-sm" onclick="saveStudentInfo()">保存学员信息</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI总结结果显示区域 -->
+            <div class="ai-summary-section" id="ai-summary-section" style="display: none;">
+                <div class="summary-header">
+                    <h4>🤖 AI智能总结</h4>
+                    <span class="summary-meta" id="summary-meta"></span>
+                </div>
+                <div class="summary-content" id="summary-content"></div>
+            </div>
+        </div>
+
+        <!-- 消息展示区域 -->
+        <div class="messages-container">
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-text">请输入关键词开始查询</div>
+            </div>
+
+            <div class="loading-state" id="loading-state" style="display: none;">
+                <div class="loading-spinner"></div>
+                <div>正在加载消息...</div>
+            </div>
+
+            <div id="messages-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let selectedUser = null;
+        let isTeacherMode = false;
+        let searchTimeout = null;
+        let multiUsers = [];
+        let selectedUserIds = [];
+        let aggregatedText = '';
+        let aggregatedMeta = { total_users: 0, total_messages: 0 };
+
+        window.onload = () => {
+            resetTimeRange();
+            loadFilterOptions();
+            setupEventListeners();
+        };
+
+        function setupEventListeners() {
+            const nameInput = document.getElementById('user-name-input');
+            const versionInput = document.getElementById('version-input');
+
+            versionInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value === '111') {
+                    isTeacherMode = true;
+                    showToast('已切换到老师模式', false);
+                    this.value = '';
+                    const name = nameInput.value.trim();
+                    if (name.length >= 1) {
+                        searchUsers(name, 'teacher');
+                    }
+                }
+            });
+
+            nameInput.addEventListener('input', function() {
+                const name = this.value.trim();
+                clearTimeout(searchTimeout);
+
+                if (name.length >= 1) {
+                    searchTimeout = setTimeout(() => {
+                        const role = isTeacherMode ? 'teacher' : 'parent';
+                        searchUsers(name, role);
+                    }, 300);
+                } else {
+                    hideUserSelection();
+                }
+            });
+        }
+
+        function resetTimeRange() {
+            const endTime = new Date();
+            const startTime = new Date(endTime - 30 * 24 * 60 * 60 * 1000);
+
+            document.getElementById('end-time-input').value = formatDatetimeLocal(endTime);
+            document.getElementById('start-time-input').value = formatDatetimeLocal(startTime);
+        }
+
+        function formatDatetimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        async function searchUsers(name, role) {
+            try {
+                const url = `/api/search-users?keyword=${encodeURIComponent(name)}&role=${role}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.status === 'error') {
+                    showToast(result.message, true);
+                    return;
+                }
+
+                if (result.count === 0) {
+                    showToast('未找到匹配的用户', true);
+                    hideUserSelection();
+                } else if (result.count === 1) {
+                    selectUser(result.users[0]);
+                } else {
+                    showUserSelection(result.users);
+                }
+            } catch (error) {
+                showToast('搜索失败: ' + error.message, true);
+            }
+        }
+
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch('/api/filter-options');
+                const result = await response.json();
+                if (result.status !== 'success') return;
+                const options = result.options || {};
+
+                const sectionSelect = document.getElementById('section-select');
+                (options.sections || []).forEach(section => {
+                    sectionSelect.innerHTML += `<option value="${section}">${section}</option>`;
+                });
+
+                const levelSelect = document.getElementById('level-select');
+                (options.levels || []).forEach(level => {
+                    levelSelect.innerHTML += `<option value="${level}">${level}</option>`;
+                });
+
+                const classSelect = document.getElementById('class-select');
+                (options.classes || []).forEach(cls => {
+                    classSelect.innerHTML += `<option value="${cls.id}">${cls.name || cls.id}</option>`;
+                });
+
+            } catch (error) {
+                showToast('加载筛选选项失败', true);
+            }
+        }
+
+        async function applyMultiFilters() {
+            const filters = {
+                section: document.getElementById('section-select').value,
+                level: document.getElementById('level-select').value,
+                class_id: document.getElementById('class-select').value,
+                keyword: document.getElementById('user-name-input').value.trim()
+            };
+
+            Object.keys(filters).forEach(key => {
+                if (!filters[key]) delete filters[key];
+            });
+
+            if (!isTeacherMode) {
+                filters.role = 'parent';
+            } else {
+                filters.role = 'teacher';
+            }
+
+            try {
+                const response = await fetch('/api/filter-users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({filters})
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    showToast(result.message || '筛选失败', true);
+                    return;
+                }
+                multiUsers = result.users || [];
+                selectedUserIds = [];
+                aggregatedText = '';
+                aggregatedMeta = { total_users: 0, total_messages: 0 };
+                document.querySelector('.multi-messages-section').style.display = 'none';
+                document.getElementById('multi-aggregate-btn').disabled = true;
+                document.getElementById('multi-analysis-btn').disabled = true;
+                renderMultiUsers();
+                showToast(`筛选成功，找到 ${result.count} 个用户`);
+            } catch (error) {
+                showToast('筛选失败: ' + error.message, true);
+            }
+        }
+
+        function renderMultiUsers() {
+            const section = document.getElementById('multi-users-section');
+            const list = document.getElementById('multi-user-list');
+            const count = document.getElementById('multi-user-count');
+            const selectAll = document.getElementById('multi-select-all');
+
+            if (!multiUsers.length) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            count.textContent = multiUsers.length;
+            list.innerHTML = '';
+            selectAll.checked = false;
+
+            multiUsers.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'multi-user-item';
+                item.onclick = (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = item.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleMultiUser(user.wechat_id, checkbox.checked);
+                    }
+                };
+
+                const roleText = user.user_role === 'head_teacher' ? '班主任' :
+                                 user.user_role === 'teacher' ? '老师' : '家长';
+                const studentInfo = user.student_name ? `学员: ${user.student_name}` : '学员: 未关联';
+                const messageInfo = `${user.text_message_count || 0}条消息`;
+
+                item.innerHTML = `
+                    <input type="checkbox" data-user-id="${user.wechat_id}"
+                        onchange="toggleMultiUser('${user.wechat_id}', this.checked)">
+                    <div>
+                        <div class="user-name">${user.display_name}</div>
+                        <div class="multi-user-meta">${roleText} · ${studentInfo} · ${messageInfo}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function toggleMultiUser(userId, isSelected) {
+            if (isSelected) {
+                if (!selectedUserIds.includes(userId)) selectedUserIds.push(userId);
+            } else {
+                selectedUserIds = selectedUserIds.filter(id => id !== userId);
+            }
+
+            document.getElementById('multi-aggregate-btn').disabled = selectedUserIds.length === 0;
+            document.getElementById('multi-analysis-btn').disabled = true;
+
+            const allCheckboxes = document.querySelectorAll('.multi-user-item input[type="checkbox"]');
+            const selectAllCheckbox = document.getElementById('multi-select-all');
+            selectAllCheckbox.checked = allCheckboxes.length > 0 &&
+                selectedUserIds.length === allCheckboxes.length;
+
+            document.querySelectorAll('.multi-user-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function toggleMultiSelectAll() {
+            const isChecked = document.getElementById('multi-select-all').checked;
+            const checkboxes = document.querySelectorAll('.multi-user-item input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                toggleMultiUser(checkbox.getAttribute('data-user-id'), isChecked);
+            });
+        }
+
+        async function viewMultiMessages() {
+            if (!selectedUserIds.length) {
+                showToast('请先选择用户', true);
+                return;
+            }
+
+            const startTime = document.getElementById('start-time-input').value;
+            const endTime = document.getElementById('end-time-input').value;
+            const section = document.querySelector('.multi-messages-section');
+            const content = document.getElementById('multi-messages-content');
+
+            section.style.display = 'block';
+            content.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><div>正在加载聊天记录...</div></div>';
+
+            try {
+                const aggregateResponse = await fetch('/api/aggregate-messages', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_ids: selectedUserIds, start_time: startTime, end_time: endTime })
+                });
+                const aggregateResult = await aggregateResponse.json();
+                if (aggregateResult.status !== 'success') {
+                    content.innerHTML = `<div class="empty-state"><div style="color:#f44336;">${aggregateResult.message}</div></div>`;
+                    showToast(aggregateResult.message || '加载失败', true);
+                    return;
+                }
+                aggregatedText = aggregateResult.aggregated_text || '';
+                aggregatedMeta = {
+                    total_users: aggregateResult.total_users || 0,
+                    total_messages: aggregateResult.total_messages || 0
+                };
+                content.textContent = aggregatedText;
+                document.getElementById('multi-analysis-btn').disabled = !aggregatedText;
+                showToast(`已汇总 ${aggregatedMeta.total_users} 位用户，共 ${aggregatedMeta.total_messages} 条消息`);
+            } catch (error) {
+                content.innerHTML = `<div class="empty-state"><div style="color:#f44336;">加载失败: ${error.message}</div></div>`;
+                showToast('加载失败: ' + error.message, true);
+            }
+        }
+
+        async function runMultiAnalysis() {
+            if (!aggregatedText) {
+                showToast('请先点击“汇总内容”', true);
+                return;
+            }
+
+            const startTime = document.getElementById('start-time-input').value;
+            const endTime = document.getElementById('end-time-input').value;
+            const section = document.querySelector('.multi-messages-section');
+            const analysisSection = document.getElementById('multi-analysis-section');
+            const analysisContent = document.getElementById('multi-analysis-content');
+            const meta = document.getElementById('multi-analysis-meta');
+            const btn = document.getElementById('multi-analysis-btn');
+
+            section.style.display = 'block';
+            analysisSection.style.display = 'block';
+            analysisContent.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><div>AI正在分析，请稍候...</div></div>';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/multi-user-analysis', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_ids: selectedUserIds,
+                        start_time: startTime,
+                        end_time: endTime,
+                        aggregated_text: aggregatedText,
+                        total_users: aggregatedMeta.total_users,
+                        total_messages: aggregatedMeta.total_messages,
+                        mode: isTeacherMode ? 'teacher' : 'parent'
+                    })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    analysisContent.innerHTML = `<div style="color:#f44336;">分析失败: ${result.message}</div>`;
+                    showToast(result.message || '分析失败', true);
+                    return;
+                }
+                analysisContent.textContent = result.analysis;
+                meta.textContent = `${result.user_count}位用户 · ${result.message_count}条消息 · 耗时${(result.duration_ms/1000).toFixed(1)}秒`;
+                showToast(`已分析 ${result.user_count} 位用户`);
+            } catch (error) {
+                analysisContent.innerHTML = `<div style="color:#f44336;">分析失败: ${error.message}</div>`;
+                showToast('分析失败: ' + error.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function resetMultiFilters() {
+            document.getElementById('section-select').value = '';
+            document.getElementById('level-select').value = '';
+            document.getElementById('class-select').value = '';
+            document.getElementById('multi-users-section').classList.add('hidden');
+            selectedUserIds = [];
+            aggregatedText = '';
+            aggregatedMeta = { total_users: 0, total_messages: 0 };
+            document.getElementById('multi-aggregate-btn').disabled = true;
+            document.getElementById('multi-analysis-btn').disabled = true;
+        }
+
+        function showUserSelection(users) {
+            const area = document.getElementById('user-selection-area');
+            const header = document.getElementById('user-selection-header');
+            const list = document.getElementById('user-list');
+
+            header.textContent = `发现 ${users.length} 个匹配用户，请选择：`;
+            list.innerHTML = '';
+
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                item.onclick = () => selectUser(user);
+
+                let roleText = '未分类';
+                if (user.user_role === 'teacher' || user.user_role === 'head_teacher') {
+                    roleText = '老师';
+                } else if (user.user_role === 'parent') {
+                    roleText = '家长';
+                }
+
+                item.innerHTML = `
+                    <div class="user-item-main">
+                        <div class="user-item-name">${user.display_name}</div>
+                        <div class="user-item-role">${roleText}</div>
+                        <div class="user-item-id">${user.id_prefix}...</div>
+                    </div>
+                `;
+
+                list.appendChild(item);
+            });
+
+            area.style.display = 'block';
+        }
+
+        function hideUserSelection() {
+            document.getElementById('user-selection-area').style.display = 'none';
+        }
+
+        function selectUser(user) {
+            selectedUser = user;
+            hideUserSelection();
+            showUserInfo(user);
+            loadUserMessages();
+        }
+
+        function showUserInfo(user) {
+            let roleText = '未分类';
+            if (user.user_role === 'teacher' || user.user_role === 'head_teacher') {
+                roleText = '老师';
+            } else if (user.user_role === 'parent') {
+                roleText = '家长';
+            }
+
+            const avatar = roleText === '老师' ? '👨‍🏫' : '👤';
+
+            document.getElementById('user-avatar').textContent = avatar;
+            document.getElementById('user-display-name').textContent = user.display_name;
+            document.getElementById('user-role-text').textContent = roleText;
+            document.getElementById('user-id-text').textContent = user.id_prefix + '...';
+            document.getElementById('selected-user-info').style.display = 'block';
+
+            if (user.user_role === 'parent') {
+                document.getElementById('student-info-section').style.display = 'block';
+                document.getElementById('student-name-input').value = user.student_name || '';
+                document.getElementById('student-english-name-input').value = user.student_english_name || '';
+                document.getElementById('student-class-room-id-input').value = user.student_class_room_id || '';
+            } else {
+                document.getElementById('student-info-section').style.display = 'none';
+            }
+        }
+
+        function clearSelection() {
+            selectedUser = null;
+            document.getElementById('selected-user-info').style.display = 'none';
+            document.getElementById('messages-container').innerHTML = '';
+            document.getElementById('empty-state').style.display = 'block';
+            document.getElementById('user-name-input').value = '';
+            document.getElementById('ai-summary-section').style.display = 'none';
+        }
+
+        async function loadUserMessages() {
+            const container = document.getElementById('messages-container');
+            const emptyState = document.getElementById('empty-state');
+            const loadingState = document.getElementById('loading-state');
+
+            emptyState.style.display = 'none';
+            loadingState.style.display = 'block';
+            container.innerHTML = '';
+
+            try {
+                const startTime = document.getElementById('start-time-input').value;
+                const endTime = document.getElementById('end-time-input').value;
+
+                const url = `/api/user-messages?user_id=${encodeURIComponent(selectedUser.original_id)}&start_time=${startTime}&end_time=${endTime}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (result.status === 'error') {
+                    showToast(result.message, true);
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                if (result.conversation_count === 0) {
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = `
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">该时间范围内没有找到消息</div>
+                    `;
+                } else {
+                    const totalMessages = result.conversations.reduce((sum, conv) => sum + conv.message_count, 0);
+                    renderConversations(result.conversations);
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                showToast('加载失败: ' + error.message, true);
+                emptyState.style.display = 'block';
+            }
+        }
+
+        function renderConversations(conversations) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+
+            conversations.forEach((conv, index) => {
+                const card = createConversationCard(conv, index);
+                container.appendChild(card);
+            });
+        }
+
+        function createConversationCard(conv) {
+            const card = document.createElement('div');
+            const isGroup = conv.conversation_type === 'group';
+            card.className = `conversation-card ${isGroup ? 'group-conversation' : 'private-conversation'}`;
+
+            const icon = isGroup ? '🏫' : '👤';
+            const typeText = isGroup ? '群聊' : '私聊';
+
+            card.innerHTML = `
+                <div class="conversation-header">
+                    <div class="conversation-title">
+                        <span class="conversation-icon">${icon}</span>
+                        <h3>${conv.conversation_name}</h3>
+                        <span class="badge">${conv.message_count}条消息</span>
+                    </div>
+                    <div class="conversation-meta">
+                        ${typeText} · 最后发言: ${formatDateTime(conv.last_message_time)}
+                    </div>
+                </div>
+                <div class="messages-list">
+                    ${conv.messages.map(msg => createMessageHTML(msg)).join('')}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function createMessageHTML(msg) {
+            const directionClass = msg.direction === 'sent' ? 'message-sent' : 'message-received';
+            const senderText = msg.direction === 'sent' ? '我' : '对方';
+
+            return `
+                <div class="message-item ${directionClass}">
+                    <div class="message-time">${formatTime(msg.msgtime)}</div>
+                    <div class="message-sender">${senderText}</div>
+                    <div class="message-content">${escapeHtml(msg.content)}</div>
+                </div>
+            `;
+        }
+
+        function formatDateTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function saveStudentInfo() {
+            if (!selectedUser) {
+                showToast('请先选择用户', true);
+                return;
+            }
+
+            if (selectedUser.user_role !== 'parent') {
+                showToast('只有家长角色才能保存学员信息', true);
+                return;
+            }
+
+            const studentName = document.getElementById('student-name-input').value.trim();
+            const studentEnglishName = document.getElementById('student-english-name-input').value.trim();
+            const studentClassRoomId = document.getElementById('student-class-room-id-input').value.trim();
+
+            try {
+                const response = await fetch('/api/update-student-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: selectedUser.original_id,
+                        student_name: studentName,
+                        student_english_name: studentEnglishName,
+                        student_class_room_id: studentClassRoomId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'error') {
+                    showToast(result.message, true);
+                    return;
+                }
+
+                selectedUser.student_name = studentName;
+                selectedUser.student_english_name = studentEnglishName;
+                selectedUser.student_class_room_id = studentClassRoomId;
+
+                showToast('学员信息保存成功', false);
+            } catch (error) {
+                showToast('保存失败: ' + error.message, true);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            document.querySelectorAll('.toast').forEach(t => t.remove());
+
+            const toast = document.createElement('div');
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        async function handleAISummary() {
+            if (!selectedUser) {
+                showToast('请先选择用户', true);
+                return;
+            }
+
+            const messagesContainer = document.getElementById('messages-container');
+            if (!messagesContainer || messagesContainer.children.length === 0) {
+                showToast('没有可总结的消息数据', true);
+                return;
+            }
+
+            const summaryBtn = document.getElementById('ai-summary-btn');
+            const summaryText = document.getElementById('ai-summary-text');
+            const summarySpinner = document.getElementById('ai-summary-spinner');
+
+            summaryBtn.disabled = true;
+            summaryText.textContent = '正在总结...';
+            summarySpinner.style.display = 'inline';
+
+            const summarySection = document.getElementById('ai-summary-section');
+            const summaryContent = document.getElementById('summary-content');
+            const summaryMeta = document.getElementById('summary-meta');
+
+            summarySection.style.display = 'block';
+            summaryContent.innerHTML = '<div class="summary-loading">AI正在分析对话内容</div>';
+
+            try {
+                const startTime = document.getElementById('start-time-input').value;
+                const endTime = document.getElementById('end-time-input').value;
+
+                const response = await fetch('/api/summarize-messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: selectedUser.original_id,
+                        user_name: selectedUser.display_name,
+                        start_time: startTime,
+                        end_time: endTime,
+                        mode: isTeacherMode ? 'teacher' : 'parent'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'error') {
+                    throw new Error(result.message);
+                }
+
+                summaryContent.textContent = result.summary;
+                summaryMeta.textContent = `总结时间: ${formatDateTime(new Date().toISOString())} · 消息数: ${result.message_count}条 · 对话数: ${result.conversation_count}个`;
+                showToast('AI总结完成', false);
+            } catch (error) {
+                summaryContent.innerHTML = `<div class="summary-error">❌ 总结失败: ${error.message}</div>`;
+                showToast('AI总结失败: ' + error.message, true);
+            } finally {
+                summaryBtn.disabled = false;
+                summaryText.textContent = '智能总结';
+                summarySpinner.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
