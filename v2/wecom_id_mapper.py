@@ -362,6 +362,7 @@ def get_mappings(id_type):
                     s.id AS student_id,
                     s.name AS student_name,
                     s.english_name AS student_english_name,
+                    s.status AS student_status,
                     COALESCE(c.name, s.class_room_id) AS student_class_name,
                     COALESCE(c.room_id, s.class_room_id) AS student_class_room_id
                 FROM v2.wecom_id_mappings m
@@ -415,6 +416,7 @@ def update_mapping(id_type, original_id):
     student_english_name = (data.get("student_english_name") or "").strip()
     student_class_room_id = (data.get("student_class_room_id") or "").strip()
     student_id = data.get("student_id")
+    student_status = (data.get("student_status") or "").strip()
 
     try:
         conn = get_db_connection()
@@ -462,6 +464,21 @@ def update_mapping(id_type, original_id):
                     cur.close()
                     conn.close()
                     return jsonify({"status": "error", "message": "学员不存在或未导入花名册"}), 400
+                if student_english_name or student_status:
+                    cur.execute(
+                        """
+                        UPDATE v2.students
+                        SET english_name = COALESCE(%s, english_name),
+                            status = COALESCE(NULLIF(%s, ''), status),
+                            updated_at = NOW()
+                        WHERE id = %s
+                        """,
+                        (
+                            student_english_name or None,
+                            student_status,
+                            student_id,
+                        ),
+                    )
                 cur.execute("DELETE FROM v2.wecom_user_student_rel WHERE wecom_id = %s", (wecom_id,))
                 cur.execute(
                     """
@@ -749,4 +766,4 @@ if __name__ == "__main__":
     print("DB:", DB_CONFIG["database"])
     print("WeCom:", "configured" if WECOM_CONFIG["corp_id"] else "missing")
     port = int(os.getenv("PORT", "5004"))
-    app.run(debug=True, port=port, host="0.0.0.0")
+    app.run(debug=False, port=port, host="0.0.0.0")

@@ -138,37 +138,33 @@ def get_filter_options():
 
         cur.execute(
             """
-            SELECT DISTINCT NULLIF(m.profile->>'student_section', '') AS section
-            FROM v2.wecom_id_mappings m
-            WHERE m.id_type = 'user_id'
-              AND m.profile ? 'student_section'
-              AND NULLIF(m.profile->>'student_section', '') IS NOT NULL
-            ORDER BY section
+            SELECT id, name
+            FROM v2.sections
+            ORDER BY sort_order, name
             """
         )
-        options["sections"] = [row["section"] for row in cur.fetchall()]
+        options["sections"] = [dict(row) for row in cur.fetchall()]
 
         cur.execute(
             """
-            SELECT DISTINCT NULLIF(m.profile->>'student_level', '') AS level
-            FROM v2.wecom_id_mappings m
-            WHERE m.id_type = 'user_id'
-              AND m.profile ? 'student_level'
-              AND NULLIF(m.profile->>'student_level', '') IS NOT NULL
-            ORDER BY level
+            SELECT id, name, section_id
+            FROM v2.levels
+            ORDER BY sort_order, name
             """
         )
-        options["levels"] = [row["level"] for row in cur.fetchall()]
+        options["levels"] = [dict(row) for row in cur.fetchall()]
 
         cur.execute(
             """
-            SELECT DISTINCT s.class_room_id AS id,
-                   COALESCE(rm.business_name, rm.wecom_nickname, s.class_room_id) AS name
-            FROM v2.students s
-            LEFT JOIN v2.wecom_id_mappings rm
-              ON rm.id_type = 'room_id' AND rm.original_id = s.class_room_id
-            WHERE s.class_room_id IS NOT NULL AND s.class_room_id <> ''
-            ORDER BY name
+            SELECT
+                c.id,
+                c.name,
+                c.room_id,
+                c.level_id,
+                l.section_id
+            FROM v2.classes c
+            JOIN v2.levels l ON l.id = c.level_id
+            ORDER BY c.name
             """
         )
         options["classes"] = [dict(row) for row in cur.fetchall()]
@@ -239,6 +235,8 @@ def filter_users():
                 ON rel.wecom_id = m.id AND rel.is_primary = TRUE
             LEFT JOIN v2.students s
                 ON s.id = rel.student_id
+            LEFT JOIN v2.classes c
+                ON c.id = s.class_id
             LEFT JOIN LATERAL (
                 SELECT COUNT(*) AS text_message_count
                 FROM v2.wecom_chat_logs wcl
@@ -275,17 +273,25 @@ def filter_users():
             like = f"%{filters['keyword']}%"
             params.extend([like, like, like, like, like])
 
-        if filters.get("section"):
-            query += " AND m.profile->>'student_section' = %s"
-            params.append(filters["section"])
+        if filters.get("section_id"):
+            query += " AND c.level_id IN (SELECT id FROM v2.levels WHERE section_id = %s)"
+            params.append(filters["section_id"])
 
-        if filters.get("level"):
-            query += " AND m.profile->>'student_level' = %s"
-            params.append(filters["level"])
+        if filters.get("level_id"):
+            query += " AND c.level_id = %s"
+            params.append(filters["level_id"])
 
-        if filters.get("class_id"):
-            query += " AND s.class_room_id = %s"
-            params.append(filters["class_id"])
+        if filters.get("class_ids"):
+            raw_class_ids = filters.get("class_ids") or []
+            class_ids = []
+            for value in raw_class_ids:
+                try:
+                    class_ids.append(int(value))
+                except (TypeError, ValueError):
+                    continue
+            if class_ids:
+                query += " AND c.id = ANY(%s)"
+                params.append(class_ids)
 
         if filters.get("student_name"):
             query += " AND s.name = %s"
