@@ -512,13 +512,12 @@
                 <th style="width: 14%;">用户ID</th>
                 <th style="width: 14%;">微信昵称</th>
                 <th style="width: 14%;">业务称呼</th>
-                <th style="width: 12%;">角色</th>
-                <th style="width: 14%;">学员姓名</th>
-                <th style="width: 12%;">英文名</th>
-                <th style="width: 10%;">状态</th>
-                <th style="width: 12%;">班级</th>
-                <th style="width: 8%;">最近群</th>
-                <th style="width: 10%;">操作</th>
+                <th style="width: 10%;">角色</th>
+                <th style="width: 24%;">学员姓名</th>
+                <th style="width: 8%;">状态</th>
+                <th style="width: 10%;">班级</th>
+                <th style="width: 5%;">最近群</th>
+                <th style="width: 8%;">操作</th>
             `;
         }
         html += '</tr></thead><tbody>';
@@ -541,7 +540,6 @@
                 const role = item.user_role || '';
                 const isParent = role === 'parent';
                 const studentName = item.student_name || '';
-                const studentEnglish = item.student_english_name || '';
                 const studentStatus = item.student_status || '在读';
                 const studentClassName = item.student_class_name || '';
                 const studentClassRoomId = item.student_class_room_id || '';
@@ -565,7 +563,6 @@
                                 <input type="hidden" data-field="student_id" value="${item.student_id || ''}">
                             </div>
                         </td>
-                        <td><input class="input" data-field="student_english_name" value="${studentEnglish}" placeholder="英文名" ${isParent ? '' : 'disabled'}></td>
                         <td><input class="input" data-field="student_status" value="${studentStatus}" placeholder="在读/停课等" ${isParent ? '' : 'disabled'}></td>
                         <td><div class="readonly" data-field="student_class_room_id" title="${studentClassRoomId}">${studentClassName || studentClassRoomId || '-'}</div></td>
                         <td><div class="readonly" title="${lastRoom}">${lastRoomName ? lastRoomName : '-'}</div></td>
@@ -592,7 +589,7 @@
                 input.value = '';
             }
         });
-        row.querySelectorAll('[data-field="student_english_name"], [data-field="student_status"]').forEach(input => {
+        row.querySelectorAll('[data-field="student_status"]').forEach(input => {
             input.disabled = !enable;
             if (!enable) {
                 input.value = '';
@@ -635,7 +632,6 @@
                     return null;
                 }
                 requestBody.student_id = studentId;
-                requestBody.student_english_name = row.querySelector('[data-field="student_english_name"]').value.trim();
                 requestBody.student_status = row.querySelector('[data-field="student_status"]').value.trim();
             }
         }
@@ -665,8 +661,8 @@
                         return;
                     }
                     dropdown.innerHTML = data.students.map(stu => {
-                        const label = `${stu.name}${stu.english_name ? ' / ' + stu.english_name : ''} ｜ ${stu.class_name || '-'} ｜ ${stu.status || '在读'}`;
-                        return `<div class="student-option" data-id="${stu.id}" data-name="${stu.name}" data-english="${stu.english_name || ''}" data-status="${stu.status || '在读'}" data-class-name="${stu.class_name || ''}" data-class-room="${stu.class_room_id || ''}" title="${label}">${label}</div>`;
+                        const label = `${stu.name} ｜ ${stu.class_name || '-'} ｜ ${stu.status || '在读'}`;
+                        return `<div class="student-option" data-id="${stu.id}" data-name="${stu.name}" data-status="${stu.status || '在读'}" data-class-name="${stu.class_name || ''}" data-class-room="${stu.class_room_id || ''}" title="${label}">${label}</div>`;
                     }).join('');
                     if (!data.students.length) {
                         dropdown.innerHTML = '<div class="student-option">未找到学员</div>';
@@ -694,8 +690,6 @@
                 const row = input.closest('tr');
                 row.querySelector('[data-field="student_id"]').value = option.dataset.id;
                 input.value = option.dataset.name;
-                const englishNode = row.querySelector('[data-field="student_english_name"]');
-                englishNode.value = option.dataset.english || '';
                 const statusNode = row.querySelector('[data-field="student_status"]');
                 statusNode.value = option.dataset.status || '在读';
                 const classNode = row.querySelector('[data-field="student_class_room_id"]');

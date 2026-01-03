@@ -222,46 +222,62 @@ def filter_users():
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         query = """
+            WITH user_data AS (
+                SELECT
+                    m.original_id,
+                    m.business_name,
+                    m.wecom_nickname,
+                    m.user_role,
+                    s.name AS student_name,
+                    s.english_name AS student_english_name,
+                    s.class_room_id AS student_class_room_id,
+                    c.id AS class_id,
+                    msg.text_message_count,
+                    ROW_NUMBER() OVER (PARTITION BY m.original_id ORDER BY rel.is_primary DESC NULLS LAST, s.id) AS rn
+                FROM v2.wecom_id_mappings m
+                LEFT JOIN v2.wecom_user_student_rel rel
+                    ON rel.wecom_id = m.id
+                LEFT JOIN v2.students s
+                    ON s.id = rel.student_id
+                LEFT JOIN v2.classes c
+                    ON c.id = s.class_id
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS text_message_count
+                    FROM v2.wecom_chat_logs wcl
+                    WHERE wcl.msgtype = 'text'
+                      AND (
+                        (wcl.roomid IS NOT NULL AND wcl.roomid <> '' AND wcl.from_user_id = m.original_id)
+                        OR (
+                            (wcl.roomid IS NULL OR wcl.roomid = '')
+                            AND (wcl.from_user_id = m.original_id OR m.original_id = ANY(wcl.tolist))
+                        )
+                      )
+                ) msg ON TRUE
+                WHERE m.id_type = 'user_id'
+            )
             SELECT
-                m.original_id AS wechat_id,
-                COALESCE(NULLIF(m.business_name, ''), NULLIF(m.wecom_nickname, ''), m.original_id) AS display_name,
-                m.user_role,
-                s.name AS student_name,
-                s.english_name AS student_english_name,
-                s.class_room_id AS student_class_room_id,
-                msg.text_message_count
-            FROM v2.wecom_id_mappings m
-            LEFT JOIN v2.wecom_user_student_rel rel
-                ON rel.wecom_id = m.id AND rel.is_primary = TRUE
-            LEFT JOIN v2.students s
-                ON s.id = rel.student_id
-            LEFT JOIN v2.classes c
-                ON c.id = s.class_id
-            LEFT JOIN LATERAL (
-                SELECT COUNT(*) AS text_message_count
-                FROM v2.wecom_chat_logs wcl
-                WHERE wcl.msgtype = 'text'
-                  AND (
-                    (wcl.roomid IS NOT NULL AND wcl.roomid <> '' AND wcl.from_user_id = m.original_id)
-                    OR (
-                        (wcl.roomid IS NULL OR wcl.roomid = '')
-                        AND (wcl.from_user_id = m.original_id OR m.original_id = ANY(wcl.tolist))
-                    )
-                  )
-            ) msg ON TRUE
-            WHERE m.id_type = 'user_id'
+                original_id AS wechat_id,
+                COALESCE(NULLIF(business_name, ''), NULLIF(wecom_nickname, ''), original_id) AS display_name,
+                user_role,
+                student_name,
+                student_english_name,
+                student_class_room_id,
+                text_message_count
+            FROM user_data
+            WHERE rn = 1
         """
         params = []
+        additional_conditions = []
 
         if filters.get("role"):
             if filters["role"] == "teacher":
-                query += " AND m.user_role IN ('teacher', 'head_teacher')"
+                additional_conditions.append(" AND m.user_role IN ('teacher', 'head_teacher')")
             else:
-                query += " AND m.user_role = %s"
+                additional_conditions.append(" AND m.user_role = %s")
                 params.append(filters["role"])
 
         if filters.get("keyword"):
-            query += """
+            additional_conditions.append("""
                 AND (
                     m.original_id ILIKE %s
                     OR m.business_name ILIKE %s
@@ -269,16 +285,16 @@ def filter_users():
                     OR s.name ILIKE %s
                     OR s.english_name ILIKE %s
                 )
-            """
+            """)
             like = f"%{filters['keyword']}%"
             params.extend([like, like, like, like, like])
 
         if filters.get("section_id"):
-            query += " AND c.level_id IN (SELECT id FROM v2.levels WHERE section_id = %s)"
+            additional_conditions.append(" AND c.level_id IN (SELECT id FROM v2.levels WHERE section_id = %s)")
             params.append(filters["section_id"])
 
         if filters.get("level_id"):
-            query += " AND c.level_id = %s"
+            additional_conditions.append(" AND c.level_id = %s")
             params.append(filters["level_id"])
 
         if filters.get("class_ids"):
@@ -290,23 +306,30 @@ def filter_users():
                 except (TypeError, ValueError):
                     continue
             if class_ids:
-                query += " AND c.id = ANY(%s)"
+                additional_conditions.append(" AND c.id = ANY(%s)")
                 params.append(class_ids)
 
         if filters.get("student_name"):
-            query += " AND s.name = %s"
+            additional_conditions.append(" AND s.name = %s")
             params.append(filters["student_name"])
 
         if filters.get("teacher_id"):
-            query += " AND m.original_id = %s"
+            additional_conditions.append(" AND m.original_id = %s")
             params.append(filters["teacher_id"])
 
         if filters.get("head_teacher_id"):
-            query += " AND m.original_id = %s"
+            additional_conditions.append(" AND m.original_id = %s")
             params.append(filters["head_teacher_id"])
 
-        query += " AND COALESCE(msg.text_message_count, 0) > 0"
-        query += " ORDER BY msg.text_message_count DESC NULLS LAST LIMIT 500"
+        # 在 CTE 的 WHERE 子句中插入额外条件
+        if additional_conditions:
+            query = query.replace(
+                "WHERE m.id_type = 'user_id'",
+                "WHERE m.id_type = 'user_id'" + "".join(additional_conditions)
+            )
+
+        query += " AND COALESCE(text_message_count, 0) > 0"
+        query += " ORDER BY display_name, text_message_count DESC NULLS LAST LIMIT 500"
 
         cur.execute(query, params)
         users = [dict(row) for row in cur.fetchall()]
