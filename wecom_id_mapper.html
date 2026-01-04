@@ -3,1034 +3,761 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业微信ID映射管理</title>
+    <title>企业微信映射管理 v2</title>
     <style>
+        :root {
+            --bg: #f5f2ec;
+            --card: #ffffff;
+            --ink: #1f2933;
+            --muted: #6b7280;
+            --accent: #1e9e8b;
+            --accent-strong: #167a6b;
+            --warning: #d97706;
+            --border: #e6e1d9;
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #efe7dd 0%, #f7f4ee 50%, #eef2f1 100%);
             min-height: 100vh;
-            padding: 20px;
+            color: var(--ink);
+            padding: 24px;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: var(--card);
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(25, 35, 45, 0.15);
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.6);
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            padding: 28px 32px;
+            background: linear-gradient(120deg, #0f766e 0%, #0ea5a4 50%, #1f9f84 100%);
+            color: #f8fafc;
         }
 
         .header h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            letter-spacing: 0.5px;
         }
 
         .header p {
-            opacity: 0.9;
+            margin-top: 6px;
             font-size: 14px;
+            color: rgba(248, 250, 252, 0.8);
         }
 
-        .stats-bar {
+        .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
+            gap: 16px;
+            padding: 24px 32px;
+            background: #fbfaf8;
+            border-bottom: 1px solid var(--border);
         }
 
         .stat-card {
-            background: white;
-            padding: 20px;
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
+            padding: 16px;
+            border: 1px solid var(--border);
         }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
+        .stat-card strong {
+            display: block;
+            font-size: 22px;
+            color: var(--accent);
         }
 
-        .stat-label {
-            font-size: 14px;
-            color: #666;
+        .stat-card span {
+            font-size: 12px;
+            color: var(--muted);
         }
 
         .controls {
-            padding: 30px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .button-group {
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            gap: 15px;
             flex-wrap: wrap;
-            margin-bottom: 20px;
+            gap: 12px;
+            align-items: center;
         }
 
         .btn {
-            padding: 12px 24px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 13px;
             cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-strong);
+        }
+
+        .btn-ghost {
+            background: #f2f1ed;
+            color: #2f3a40;
+        }
+
+        .btn-ghost:hover {
+            background: #e6e2db;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 16px 32px 0;
+        }
+
+        .tab-btn {
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .filters {
+            padding: 16px 32px 24px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .filters label {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .filters .inline {
+            display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* Toast notification styles */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4caf50;
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .toast.error {
-            background: #f44336;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
-
-        .row-saved {
-            animation: flashSuccess 0.6s ease-out;
-        }
-
-        @keyframes flashSuccess {
-            0% { background-color: #fff; }
-            50% { background-color: #c8e6c9; }
-            100% { background-color: #fff; }
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-        }
-
-        .tab-switcher {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .tab-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .tab-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: transparent;
-        }
-
-        .content {
-            padding: 30px;
+        .table-wrap {
+            padding: 0 32px 32px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
+            font-size: 13px;
         }
 
-        thead {
-            background: #f8f9fa;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            padding: 15px;
+        thead th {
             text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #e0e0e0;
+            padding: 12px;
+            background: #f7f4ee;
+            border-bottom: 1px solid var(--border);
         }
 
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #efe9e1;
+            vertical-align: middle;
         }
 
-        tbody tr {
-            transition: background 0.2s;
+        tbody tr.unmapped {
+            background: #fffaf3;
         }
 
-        tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .unmapped {
-            background: #fff3cd !important;
-        }
-
-        .unmapped:hover {
-            background: #ffe69c !important;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
+        .readonly {
+            background: #f4f4f4;
             border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            padding: 6px 8px;
+            font-size: 12px;
+            color: #4b5563;
         }
 
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #667eea;
+        .input {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 12px;
         }
 
-        .role-selector {
+        .role-group {
             display: flex;
-            gap: 10px;
-            justify-content: center;
+            gap: 6px;
         }
 
         .role-btn {
-            padding: 8px 20px;
-            border: 2px solid #e0e0e0;
-            background: white;
-            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            padding: 4px 10px;
+            border-radius: 999px;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-            min-width: 80px;
-        }
-
-        .role-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
+            font-size: 12px;
         }
 
         .role-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: transparent;
-            font-weight: bold;
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
         }
 
         .save-btn {
-            padding: 8px 16px;
-            background: #28a745;
-            color: white;
+            background: #111827;
+            color: #ffffff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
+            padding: 6px 12px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .save-btn:hover {
-            background: #218838;
-            transform: scale(1.05);
         }
 
         .save-btn.saved {
-            background: #9e9e9e;
-            cursor: default;
-            pointer-events: none;
+            background: #2f855a;
         }
 
-        .save-btn.saved:hover {
-            transform: none;
+        .student-picker {
+            position: relative;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .filter-bar {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
+        .student-dropdown {
+            position: absolute;
+            top: 34px;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 30;
         }
 
-        .filter-bar label {
-            font-weight: 500;
-        }
-
-        .filter-bar input[type="text"] {
-            flex: 1;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
+        .student-option {
+            padding: 6px 8px;
+            cursor: pointer;
             font-size: 12px;
-            font-weight: 500;
         }
 
-        .badge-parent {
-            background: #e3f2fd;
-            color: #1976d2;
+        .student-option:hover {
+            background: #f2f1ed;
         }
 
-        .badge-teacher {
-            background: #f3e5f5;
-            color: #7b1fa2;
+        .hidden {
+            display: none;
         }
 
-        .id-cell {
-            font-family: 'Monaco', 'Courier New', monospace;
-            font-size: 12px;
-            color: #666;
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: #111827;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
 
-        @media (max-width: 768px) {
-            .stats-bar {
+        .toast.error {
+            background: #b91c1c;
+        }
+
+        @media (max-width: 960px) {
+            .filters {
                 grid-template-columns: 1fr;
             }
-
-            .button-group {
-                flex-direction: column;
+            .stats {
+                grid-template-columns: 1fr 1fr;
             }
-
-            .btn {
-                width: 100%;
-            }
-        }
-
-        /* 班级Room ID组合样式 */
-        .class-room-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .class-room-wrapper select {
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-            background-color: white;
-            cursor: pointer;
-        }
-
-        .class-room-wrapper select:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-        }
-
-        .class-room-wrapper input {
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .class-room-wrapper input:disabled {
-            background-color: #f5f5f5;
-            color: #999;
-        }
-
-        td input:disabled {
-            background-color: #f5f5f5;
-            color: #999;
-            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔗 企业微信ID映射管理系统</h1>
-            <p>管理群组和用户的ID映射，建立企业微信与业务数据的关联</p>
+<div class="container">
+    <div class="header">
+        <h1>企业微信映射管理 v2</h1>
+        <p>微信昵称自动填充，业务称呼手动维护</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <strong id="stat-rooms-total">-</strong>
+            <span>群组总数</span>
         </div>
-
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-value" id="stat-rooms-total">-</div>
-                <div class="stat-label">群组总数</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-rooms-mapped">-</div>
-                <div class="stat-label">已映射群组</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-users-total">-</div>
-                <div class="stat-label">用户总数</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-users-mapped">-</div>
-                <div class="stat-label">已映射用户</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-parents">-</div>
-                <div class="stat-label">家长</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-teachers">-</div>
-                <div class="stat-label">老师</div>
-            </div>
+        <div class="stat-card">
+            <strong id="stat-rooms-mapped">-</strong>
+            <span>群组已映射</span>
         </div>
-
-        <div class="controls">
-            <div class="button-group">
-                <button class="btn btn-primary" onclick="initMappingTable()">
-                    📋 创建映射表（仅首次使用）
-                </button>
-                <button class="btn btn-primary" onclick="extractAllIds()">
-                    🔍 提取所有ID
-                </button>
-                <button class="btn btn-success" onclick="exportSQL()">
-                    💾 导出SQL脚本
-                </button>
-                <button class="btn btn-secondary" onclick="loadStats()">
-                    🔄 刷新统计
-                </button>
-            </div>
-
-            <div class="tab-switcher">
-                <button class="tab-btn active" onclick="switchTab('room_id')">
-                    🏫 群组映射
-                </button>
-                <button class="tab-btn" onclick="switchTab('user_id')">
-                    👤 用户映射
-                </button>
-            </div>
-
-            <div class="filter-bar">
-                <label>🔎 筛选：</label>
-                <input type="text" id="filter-input" placeholder="输入关键词筛选..." oninput="filterTable()">
-                <label>
-                    <input type="checkbox" id="show-unmapped-only" onchange="filterTable()">
-                    仅显示未映射
-                </label>
-            </div>
+        <div class="stat-card">
+            <strong id="stat-users-total">-</strong>
+            <span>用户总数</span>
         </div>
-
-        <div class="content">
-            <div id="table-container"></div>
+        <div class="stat-card">
+            <strong id="stat-users-mapped">-</strong>
+            <span>用户已映射</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-parents">-</strong>
+            <span>家长</span>
+        </div>
+        <div class="stat-card">
+            <strong id="stat-teachers">-</strong>
+            <span>老师</span>
         </div>
     </div>
 
-    <script>
-        const API_BASE = '';
-        let currentTab = 'room_id';
-        let allData = [];
+    <div class="controls">
+        <button class="btn btn-primary" onclick="extractIds()">提取 ID（不覆盖）</button>
+        <button class="btn btn-ghost" onclick="batchFetchNicknames()">批量获取昵称</button>
+        <button class="btn btn-ghost" onclick="loadStats()">刷新统计</button>
+        <button class="btn btn-primary" id="save-all-btn" onclick="saveAll()">全部保存</button>
+    </div>
 
-        // 初始化
-        window.onload = () => {
-            loadStats();
-            loadMappings('room_id');
-        };
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('room_id')">群组映射</button>
+        <button class="tab-btn" onclick="switchTab('user_id')">用户映射</button>
+    </div>
 
-        async function initMappingTable() {
-            if (!confirm('此操作将创建 wecom_id_mappings 表（如果不存在）。\n\n注意：此操作不会删除已有数据，仅在首次使用时需要执行。\n\n确定继续吗？')) {
-                return;
-            }
+    <div class="filters">
+        <input type="text" id="keyword" placeholder="关键词：ID / 昵称 / 业务称呼">
+        <input type="text" id="roomid-filter" placeholder="按 roomid / 业务群名筛选用户" style="display:none;">
+        <input type="date" id="start-date" title="开始日期">
+        <input type="date" id="end-date" title="结束日期">
+        <label class="inline">
+            <input type="checkbox" id="only-unmapped">
+            只看未映射
+        </label>
+        <button class="btn btn-primary" onclick="applyFilters()">筛选</button>
+        <div id="result-count" style="font-size:12px;color:var(--muted);">结果：0</div>
+    </div>
 
-            try {
-                const response = await fetch(`${API_BASE}/api/init-mapping-table`, {
-                    method: 'POST'
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showToast('✓ ' + result.message);
-                    loadStats();
-                } else {
-                    showToast('初始化失败：' + result.message, true);
-                }
-            } catch (error) {
-                showToast('初始化失败：' + error.message, true);
-            }
+    <div class="table-wrap" id="table-container">
+        <div style="padding: 40px; color: var(--muted);">加载中...</div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '';
+    let currentTab = 'room_id';
+    let latestData = [];
+
+    window.onload = () => {
+        loadStats();
+        loadMappings();
+    };
+
+    function showToast(message, isError = false) {
+        document.querySelectorAll('.toast').forEach(t => t.remove());
+        const toast = document.createElement('div');
+        toast.className = 'toast' + (isError ? ' error' : '');
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2200);
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('roomid-filter').style.display = tab === 'user_id' ? 'block' : 'none';
+        document.getElementById('save-all-btn').style.display = tab === 'user_id' ? 'inline-flex' : 'none';
+        loadMappings();
+    }
+
+    function buildQuery() {
+        const keyword = document.getElementById('keyword').value.trim();
+        const onlyUnmapped = document.getElementById('only-unmapped').checked;
+        const roomid = document.getElementById('roomid-filter').value.trim();
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        const params = new URLSearchParams();
+        if (keyword) params.set('keyword', keyword);
+        if (onlyUnmapped) params.set('only_unmapped', 'true');
+        if (currentTab === 'user_id' && roomid) params.set('roomid', roomid);
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+        return params.toString();
+    }
+
+    async function loadStats() {
+        try {
+            const response = await fetch(`${API_BASE}/api/stats`);
+            const stats = await response.json();
+            document.getElementById('stat-rooms-total').textContent = stats.rooms.total;
+            document.getElementById('stat-rooms-mapped').textContent = stats.rooms.mapped;
+            document.getElementById('stat-users-total').textContent = stats.users.total;
+            document.getElementById('stat-users-mapped').textContent = stats.users.mapped;
+            document.getElementById('stat-parents').textContent = stats.users.parents;
+            document.getElementById('stat-teachers').textContent = stats.users.teachers;
+        } catch (error) {
+            showToast('统计加载失败', true);
         }
+    }
 
-        async function extractAllIds() {
-            if (!confirm('确定要从数据库提取所有ID吗？这可能需要一些时间。')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/extract-all-ids`, {
-                    method: 'POST'
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showToast('✓ ' + result.message);
-                    loadStats();
-                    loadMappings(currentTab);
-                } else {
-                    showToast('提取失败：' + result.message, true);
-                }
-            } catch (error) {
-                showToast('提取失败：' + error.message, true);
-            }
+    async function loadMappings() {
+        const container = document.getElementById('table-container');
+        container.innerHTML = '<div style="padding: 40px; color: var(--muted);">加载中...</div>';
+        try {
+            const query = buildQuery();
+            const response = await fetch(`${API_BASE}/api/mappings/${currentTab}?${query}`);
+            latestData = await response.json();
+            renderTable(latestData);
+        } catch (error) {
+            container.innerHTML = '<div style="padding: 40px; color: var(--muted);">加载失败</div>';
         }
+    }
 
-        async function loadStats() {
-            try {
-                const response = await fetch(`${API_BASE}/api/stats`);
-                const stats = await response.json();
+    function applyFilters() {
+        loadMappings();
+    }
 
-                document.getElementById('stat-rooms-total').textContent = stats.rooms.total;
-                document.getElementById('stat-rooms-mapped').textContent = stats.rooms.mapped;
-                document.getElementById('stat-users-total').textContent = stats.users.total;
-                document.getElementById('stat-users-mapped').textContent = stats.users.mapped;
-                document.getElementById('stat-parents').textContent = stats.users.parents;
-                document.getElementById('stat-teachers').textContent = stats.users.teachers;
-            } catch (error) {
-                console.error('加载统计失败：', error);
+    async function extractIds() {
+        if (!confirm('确认提取所有 ID（不会覆盖已有记录）？')) return;
+        try {
+            const response = await fetch(`${API_BASE}/api/extract-all-ids`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                showToast(result.message);
+                loadStats();
+                loadMappings();
+            } else {
+                showToast(result.message || '提取失败', true);
             }
+        } catch (error) {
+            showToast('提取失败', true);
         }
+    }
 
-        function switchTab(tab) {
-            currentTab = tab;
-
-            // 更新按钮状态
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
+    async function batchFetchNicknames() {
+        try {
+            const response = await fetch(`${API_BASE}/api/batch-fetch-wecom-names`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_type: currentTab,
+                    limit: 80,
+                    only_unmapped: true,
+                    keyword: document.getElementById('keyword').value.trim(),
+                    roomid: document.getElementById('roomid-filter').value.trim(),
+                    start_date: document.getElementById('start-date').value,
+                    end_date: document.getElementById('end-date').value
+                })
             });
-            event.target.classList.add('active');
+            const result = await response.json();
+            if (result.status === 'success') {
+                showToast(`成功：${result.success_count}，失败：${result.fail_count}`);
+                loadMappings();
+            } else {
+                showToast(result.message || '获取失败', true);
+            }
+        } catch (error) {
+            showToast('获取失败', true);
+        }
+    }
 
-            loadMappings(tab);
+    function renderTable(data) {
+        const container = document.getElementById('table-container');
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = '<div style="padding: 40px; color: var(--muted);">暂无数据</div>';
+            document.getElementById('result-count').textContent = '结果：0';
+            return;
         }
 
-        async function loadMappings(idType) {
-            const container = document.getElementById('table-container');
-            container.innerHTML = '<div class="loading">加载中...</div>';
+        document.getElementById('result-count').textContent = `结果：${data.length}`;
 
-            try {
-                const response = await fetch(`${API_BASE}/api/mappings/${idType}`);
-                allData = await response.json();
-                renderTable(allData);
-            } catch (error) {
-                container.innerHTML = `<div class="loading" style="color: red;">加载失败：${error.message}</div>`;
-            }
+        let html = '<table><thead><tr>';
+        if (currentTab === 'room_id') {
+            html += `
+                <th style="width: 18%;">roomid</th>
+                <th style="width: 20%;">微信昵称</th>
+                <th style="width: 30%;">业务群名</th>
+                <th style="width: 12%;">状态</th>
+                <th style="width: 20%;">操作</th>
+            `;
+        } else {
+            html += `
+                <th style="width: 14%;">用户ID</th>
+                <th style="width: 14%;">微信昵称</th>
+                <th style="width: 14%;">业务称呼</th>
+                <th style="width: 10%;">角色</th>
+                <th style="width: 24%;">学员姓名</th>
+                <th style="width: 8%;">状态</th>
+                <th style="width: 10%;">班级</th>
+                <th style="width: 5%;">最近群</th>
+                <th style="width: 8%;">操作</th>
+            `;
         }
+        html += '</tr></thead><tbody>';
 
-        function renderTable(data) {
-            const container = document.getElementById('table-container');
-
-            if (data.length === 0) {
-                container.innerHTML = '<div class="loading">暂无数据，请先点击"提取所有ID"</div>';
-                return;
-            }
-
-            let tableHTML = '<table>';
-
-            // 表头
+        data.forEach(item => {
+            const rowClass = item.business_name ? '' : 'unmapped';
             if (currentTab === 'room_id') {
-                tableHTML += `
-                    <thead>
-                        <tr>
-                            <th style="width: 40%">群组ID</th>
-                            <th style="width: 40%">群组名称</th>
-                            <th style="width: 20%">操作</th>
-                        </tr>
-                    </thead>
+                html += `
+                    <tr class="${rowClass}" data-id="${item.id}" data-original-id="${item.original_id}">
+                        <td title="${item.original_id}">${item.original_id}</td>
+                        <td><div class="readonly">${item.wecom_nickname || '未获取'}</div></td>
+                        <td>
+                            <input class="input" data-field="business_name" value="${item.business_name || ''}" placeholder="请输入业务群名">
+                        </td>
+                        <td>${item.business_name ? '已映射' : '未映射'}</td>
+                        <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
+                    </tr>
                 `;
             } else {
-                tableHTML += `
-                    <thead>
-                        <tr>
-                            <th style="width: 15%">企业微信ID</th>
-                            <th style="width: 12%">真实姓名</th>
-                            <th style="width: 10%">角色</th>
-                            <th style="width: 12%">学员姓名</th>
-                            <th style="width: 12%">学员英文名</th>
-                            <th style="width: 25%">在读班级</th>
-                            <th style="width: 14%">操作</th>
-                        </tr>
-                    </thead>
+                const role = item.user_role || '';
+                const isParent = role === 'parent';
+                const studentName = item.student_name || '';
+                const studentStatus = item.student_status || '在读';
+                const studentClassName = item.student_class_name || '';
+                const studentClassRoomId = item.student_class_room_id || '';
+                const lastRoom = item.last_roomid || '';
+                const lastRoomName = item.last_room_name || lastRoom || '';
+                html += `
+                    <tr class="${rowClass}" data-original-id="${item.original_id}" data-last-roomid="${lastRoom}">
+                        <td title="${item.original_id}">${item.original_id}</td>
+                        <td><div class="readonly">${item.wecom_nickname || '未获取'}</div></td>
+                        <td><input class="input" data-field="business_name" value="${item.business_name || ''}" placeholder="例如：张三妈妈"></td>
+                        <td>
+                            <div class="role-group">
+                                <button class="role-btn ${role === 'parent' ? 'active' : ''}" onclick="selectRole(this, 'parent')">家长</button>
+                                <button class="role-btn ${role === 'teacher' ? 'active' : ''}" onclick="selectRole(this, 'teacher')">老师</button>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="student-picker">
+                                <input class="input student-search" data-field="student_name" value="${studentName}" placeholder="输入学员姓名" ${isParent ? '' : 'disabled'}>
+                                <div class="student-dropdown hidden"></div>
+                                <input type="hidden" data-field="student_id" value="${item.student_id || ''}">
+                            </div>
+                        </td>
+                        <td><input class="input" data-field="student_status" value="${studentStatus}" placeholder="在读/停课等" ${isParent ? '' : 'disabled'}></td>
+                        <td><div class="readonly" data-field="student_class_room_id" title="${studentClassRoomId}">${studentClassName || studentClassRoomId || '-'}</div></td>
+                        <td><div class="readonly" title="${lastRoom}">${lastRoomName ? lastRoomName : '-'}</div></td>
+                        <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
+                    </tr>
                 `;
             }
+        });
 
-            tableHTML += '<tbody>';
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        attachStudentPickers();
+    }
 
-            // 表体
-            data.forEach(item => {
-                const rowClass = item.is_mapped ? '' : 'unmapped';
+    function selectRole(btn, role) {
+        const row = btn.closest('tr');
+        row.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-                if (currentTab === 'room_id') {
-                    tableHTML += `
-                        <tr class="${rowClass}" data-id="${item.id}">
-                            <td class="id-cell">${item.original_id}</td>
-                            <td>
-                                <input type="text"
-                                       value="${item.display_name}"
-                                       placeholder="例如：凤凰30班"
-                                       data-field="display_name">
-                            </td>
-                            <td>
-                                <button class="save-btn" onclick="saveMapping('${item.original_id}')">
-                                    保存
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    const isParent = item.user_role === 'parent';
-                    tableHTML += `
-                        <tr class="${rowClass}" data-id="${item.id}" data-original-id="${item.original_id}">
-                            <td class="id-cell">${item.original_id}</td>
-                            <td>
-                                <input type="text"
-                                       value="${item.display_name}"
-                                       placeholder="例如：李四"
-                                       data-field="display_name">
-                            </td>
-                            <td>
-                                <div class="role-selector">
-                                    <button class="role-btn ${item.user_role === 'parent' ? 'active' : ''}"
-                                            onclick="selectRole(this, 'parent')">
-                                        家长
-                                    </button>
-                                    <button class="role-btn ${item.user_role === 'teacher' ? 'active' : ''}"
-                                            onclick="selectRole(this, 'teacher')">
-                                        老师
-                                    </button>
-                                </div>
-                            </td>
-                            <td>
-                                <input type="text"
-                                       value="${item.student_name || ''}"
-                                       placeholder="${isParent ? '学员姓名' : ''}"
-                                       data-field="student_name"
-                                       ${isParent ? '' : 'disabled'}>
-                            </td>
-                            <td>
-                                <input type="text"
-                                       value="${item.student_english_name || ''}"
-                                       placeholder="${isParent ? 'English Name' : ''}"
-                                       data-field="student_english_name"
-                                       ${isParent ? '' : 'disabled'}>
-                            </td>
-                            <td>
-                                <div class="class-room-wrapper">
-                                    <select data-field="student_class_room_id_select"
-                                            onchange="handleClassRoomSelect(this)"
-                                            ${isParent ? '' : 'disabled'}>
-                                        <option value="">-- 选择群聊 --</option>
-                                    </select>
-                                    <input type="text"
-                                           value="${item.student_class_room_id || ''}"
-                                           placeholder="${isParent ? 'Room ID' : ''}"
-                                           data-field="student_class_room_id"
-                                           ${isParent ? '' : 'disabled'}>
-                                </div>
-                            </td>
-                            <td>
-                                <button class="save-btn" onclick="saveMapping('${item.original_id}')">
-                                    保存
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+        const enable = role === 'parent';
+        row.querySelectorAll('[data-field="student_name"]').forEach(input => {
+            input.disabled = !enable;
+            if (!enable) {
+                input.value = '';
+            }
+        });
+        row.querySelectorAll('[data-field="student_status"]').forEach(input => {
+            input.disabled = !enable;
+            if (!enable) {
+                input.value = '';
+            }
+        });
+        row.querySelectorAll('[data-field="student_id"]').forEach(input => {
+            if (!enable) {
+                input.value = '';
+            }
+        });
+        row.querySelectorAll('[data-field="student_class_room_id"]').forEach(node => {
+            if (!enable) {
+                node.textContent = '-';
+                node.title = '';
+            }
+        });
+    }
+
+    async function saveMapping(originalId) {
+        const row = event.target.closest('tr');
+        return saveRow(row, false);
+    }
+
+    function collectRowPayload(row) {
+        const businessName = row.querySelector('[data-field="business_name"]').value.trim();
+        const requestBody = { business_name: businessName };
+
+        if (currentTab === 'user_id') {
+            const activeRole = row.querySelector('.role-btn.active');
+            if (!activeRole) {
+                showToast('请选择角色', true);
+                return null;
+            }
+            requestBody.user_role = activeRole.textContent.trim() === '家长' ? 'parent' : 'teacher';
+
+            if (requestBody.user_role === 'parent') {
+                const studentId = row.querySelector('[data-field="student_id"]').value.trim();
+                if (!studentId) {
+                    showToast('请选择花名册中的学员', true);
+                    return null;
                 }
+                requestBody.student_id = studentId;
+                requestBody.student_status = row.querySelector('[data-field="student_status"]').value.trim();
+            }
+        }
+        return requestBody;
+    }
+
+    function attachStudentPickers() {
+        document.querySelectorAll('.student-search').forEach(input => {
+            let timer = null;
+            const dropdown = input.parentElement.querySelector('.student-dropdown');
+
+            function hideDropdown() {
+                dropdown.classList.add('hidden');
+                dropdown.innerHTML = '';
+            }
+
+            async function loadStudents(keyword) {
+                if (!keyword) {
+                    hideDropdown();
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_BASE}/api/students?keyword=${encodeURIComponent(keyword)}`);
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        hideDropdown();
+                        return;
+                    }
+                    dropdown.innerHTML = data.students.map(stu => {
+                        const label = `${stu.name} ｜ ${stu.class_name || '-'} ｜ ${stu.status || '在读'}`;
+                        return `<div class="student-option" data-id="${stu.id}" data-name="${stu.name}" data-status="${stu.status || '在读'}" data-class-name="${stu.class_name || ''}" data-class-room="${stu.class_room_id || ''}" title="${label}">${label}</div>`;
+                    }).join('');
+                    if (!data.students.length) {
+                        dropdown.innerHTML = '<div class="student-option">未找到学员</div>';
+                    }
+                    dropdown.classList.remove('hidden');
+                } catch (error) {
+                    hideDropdown();
+                }
+            }
+
+            input.addEventListener('input', () => {
+                if (input.disabled) return;
+                clearTimeout(timer);
+                const keyword = input.value.trim();
+                if (!keyword) {
+                    hideDropdown();
+                    return;
+                }
+                timer = setTimeout(() => loadStudents(keyword), 250);
             });
 
-            tableHTML += '</tbody></table>';
-            container.innerHTML = tableHTML;
-
-            // 为所有输入框添加事件监听器，当内容改变时恢复保存按钮
-            document.querySelectorAll('input[data-field="display_name"]').forEach(input => {
-                input.addEventListener('input', function() {
-                    const saveBtn = this.closest('tr').querySelector('.save-btn');
-                    if (saveBtn.classList.contains('saved')) {
-                        saveBtn.classList.remove('saved');
-                        saveBtn.textContent = '保存';
-                    }
-                });
+            dropdown.addEventListener('click', (event) => {
+                const option = event.target.closest('.student-option');
+                if (!option || !option.dataset.id) return;
+                const row = input.closest('tr');
+                row.querySelector('[data-field="student_id"]').value = option.dataset.id;
+                input.value = option.dataset.name;
+                const statusNode = row.querySelector('[data-field="student_status"]');
+                statusNode.value = option.dataset.status || '在读';
+                const classNode = row.querySelector('[data-field="student_class_room_id"]');
+                const className = option.dataset.className || '';
+                const classRoom = option.dataset.classRoom || '';
+                classNode.textContent = className || classRoom || '-';
+                classNode.title = classRoom || '';
+                hideDropdown();
             });
-        }
 
-        function selectRole(btn, role) {
-            const row = btn.closest('tr');
-            row.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            input.addEventListener('blur', () => {
+                setTimeout(() => hideDropdown(), 150);
+            });
+        });
+    }
 
-            // 当角色改变时，恢复保存按钮
-            const saveBtn = row.querySelector('.save-btn');
-            if (saveBtn.classList.contains('saved')) {
-                saveBtn.classList.remove('saved');
-                saveBtn.textContent = '保存';
-            }
-        }
+    async function saveRow(row, silent) {
+        const originalId = row.dataset.originalId;
+        const requestBody = collectRowPayload(row);
+        if (!requestBody) return false;
 
-        // Toast notification function
-        function showToast(message, isError = false) {
-            // Remove existing toasts
-            document.querySelectorAll('.toast').forEach(t => t.remove());
-
-            const toast = document.createElement('div');
-            toast.className = 'toast' + (isError ? ' error' : '');
-            toast.textContent = message;
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
-        }
-
-        async function saveMapping(originalId) {
-            const row = event.target.closest('tr');
-            const saveBtn = event.target;
-            const displayName = row.querySelector('[data-field="display_name"]').value.trim();
-
-            let userRole = null;
-            let studentName = null;
-            let studentEnglishName = null;
-            let studentClassRoomId = null;
-
-            if (currentTab === 'user_id') {
-                const activeRoleBtn = row.querySelector('.role-btn.active');
-                if (activeRoleBtn) {
-                    userRole = activeRoleBtn.textContent.trim() === '家长' ? 'parent' : 'teacher';
-                }
-
-                // 读取学员信息字段（仅家长角色）
-                if (userRole === 'parent') {
-                    const studentNameInput = row.querySelector('[data-field="student_name"]');
-                    const studentEnglishNameInput = row.querySelector('[data-field="student_english_name"]');
-                    const studentClassRoomIdSelect = row.querySelector('[data-field="student_class_room_id_select"]');
-                    const studentClassRoomIdInput = row.querySelector('[data-field="student_class_room_id"]');
-
-                    if (studentNameInput) {
-                        studentName = studentNameInput.value.trim() || null;
-                    }
-                    if (studentEnglishNameInput) {
-                        studentEnglishName = studentEnglishNameInput.value.trim() || null;
-                    }
-                    if (studentClassRoomIdInput) {
-                        // 优先使用下拉选择的值，如果没有则使用手动输入的值
-                        studentClassRoomId = (studentClassRoomIdSelect && studentClassRoomIdSelect.value) ||
-                                             studentClassRoomIdInput.value.trim() || null;
-                    }
-                }
-            }
-
-            if (!displayName) {
-                showToast('请输入名称', true);
-                return;
-            }
-
-            if (currentTab === 'user_id' && !userRole) {
-                showToast('请选择角色（家长或老师）', true);
-                return;
-            }
-
-            try {
-                const requestBody = {
-                    display_name: displayName,
-                    user_role: userRole
-                };
-
-                // 如果是家长角色，添加学员信息
-                if (userRole === 'parent') {
-                    requestBody.student_name = studentName;
-                    requestBody.student_english_name = studentEnglishName;
-                    requestBody.student_class_room_id = studentClassRoomId;
-                }
-
-                const response = await fetch(`${API_BASE}/api/mappings/${currentTab}/${originalId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    // Update row styling
-                    row.classList.remove('unmapped');
-                    row.classList.add('row-saved');
-                    setTimeout(() => row.classList.remove('row-saved'), 600);
-
-                    // Update button to "saved" state
+        try {
+            const response = await fetch(`${API_BASE}/api/mappings/${currentTab}/${originalId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                row.classList.remove('unmapped');
+                const saveBtn = row.querySelector('.save-btn');
+                if (saveBtn) {
                     saveBtn.classList.add('saved');
                     saveBtn.textContent = '已保存';
-
-                    // Update allData array to persist the changes
-                    const dataIndex = allData.findIndex(item => item.original_id === originalId);
-                    if (dataIndex !== -1) {
-                        allData[dataIndex].display_name = displayName;
-                        allData[dataIndex].user_role = userRole;
-                        allData[dataIndex].is_mapped = true;
-
-                        // 更新学员信息
-                        if (userRole === 'parent') {
-                            allData[dataIndex].student_name = studentName;
-                            allData[dataIndex].student_english_name = studentEnglishName;
-                            allData[dataIndex].student_class_room_id = studentClassRoomId;
-                        }
-                    }
-
-                    // Reload stats
+                }
+                if (!silent) {
+                    showToast('保存成功');
                     loadStats();
-
-                    // Show success message
-                    showToast('✓ 保存成功');
-                } else {
-                    showToast('保存失败：' + result.message, true);
                 }
-            } catch (error) {
-                showToast('保存失败：' + error.message, true);
+                return true;
+            } else {
+                if (!silent) showToast(result.message || '保存失败', true);
+                return false;
+            }
+        } catch (error) {
+            if (!silent) showToast('保存失败', true);
+            return false;
+        }
+    }
+
+    async function saveAll() {
+        if (currentTab !== 'user_id') return;
+        const rows = Array.from(document.querySelectorAll('tbody tr'));
+        if (rows.length === 0) return;
+        const targetRows = rows.filter(row => row.querySelector('[data-field="business_name"]'));
+        let success = 0;
+        let fail = 0;
+        for (const row of targetRows) {
+            const ok = await saveRow(row, true);
+            if (ok) {
+                success += 1;
+            } else {
+                fail += 1;
             }
         }
-
-        function filterTable() {
-            const keyword = document.getElementById('filter-input').value.toLowerCase();
-            const showUnmappedOnly = document.getElementById('show-unmapped-only').checked;
-
-            const filtered = allData.filter(item => {
-                const matchKeyword = !keyword ||
-                    item.original_id.toLowerCase().includes(keyword) ||
-                    item.display_name.toLowerCase().includes(keyword) ||
-                    (item.student_name && item.student_name.toLowerCase().includes(keyword)) ||
-                    (item.student_english_name && item.student_english_name.toLowerCase().includes(keyword)) ||
-                    (item.student_class_room_id && item.student_class_room_id.toLowerCase().includes(keyword));
-
-                const matchUnmapped = !showUnmappedOnly || !item.is_mapped;
-
-                return matchKeyword && matchUnmapped;
-            });
-
-            renderTable(filtered);
-        }
-
-        async function exportSQL() {
-            try {
-                const response = await fetch(`${API_BASE}/api/export-sql`);
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    // 创建下载
-                    const blob = new Blob([result.sql], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'wecom_mappings_export.sql';
-                    a.click();
-                    URL.revokeObjectURL(url);
-
-                    alert(`导出成功！\n教师：${result.teacher_count}人\n家长：${result.parent_count}人`);
-                } else {
-                    alert('导出失败：' + result.message);
-                }
-            } catch (error) {
-                alert('导出失败：' + error.message);
-            }
-        }
-
-        // ============ 群聊下拉选择功能 ============
-
-        /**
-         * 处理群聊下拉选择变化
-         */
-        function handleClassRoomSelect(selectElement) {
-            const row = selectElement.closest('tr');
-            const inputElement = row.querySelector('[data-field="student_class_room_id"]');
-
-            if (selectElement.value) {
-                inputElement.value = selectElement.value;
-            }
-
-            // 标记为已修改，恢复保存按钮状态
-            const saveBtn = row.querySelector('.save-btn');
-            if (saveBtn) {
-                saveBtn.textContent = '保存';
-                saveBtn.classList.remove('saved');
-            }
-        }
-
-        /**
-         * 加载家长参与的群聊列表
-         */
-        async function loadUserGroups(userId, selectElement, currentRoomId) {
-            if (!userId) return;
-
-            selectElement.innerHTML = '<option value="">加载中...</option>';
-            selectElement.disabled = true;
-
-            try {
-                const response = await fetch(`/api/user-groups/${encodeURIComponent(userId)}`);
-                const result = await response.json();
-
-                if (result.status === 'error') {
-                    throw new Error(result.message);
-                }
-
-                // 重置下拉框
-                selectElement.innerHTML = '<option value="">-- 选择群聊 --</option>';
-
-                if (result.groups && result.groups.length > 0) {
-                    result.groups.forEach(group => {
-                        const option = document.createElement('option');
-                        option.value = group.room_id;
-
-                        const roomIdPrefix = group.room_id.substring(0, 8);
-                        option.textContent = `${group.room_name} (${roomIdPrefix}...) [${group.message_count}条]`;
-
-                        if (currentRoomId && group.room_id === currentRoomId) {
-                            option.selected = true;
-                        }
-
-                        selectElement.appendChild(option);
-                    });
-
-                    // 如果当前值不在列表中，添加一个选项
-                    if (currentRoomId && !result.groups.some(g => g.room_id === currentRoomId)) {
-                        const manualOption = document.createElement('option');
-                        manualOption.value = currentRoomId;
-                        manualOption.textContent = `${currentRoomId.substring(0, 8)}... (当前值)`;
-                        manualOption.selected = true;
-                        selectElement.appendChild(manualOption);
-                    }
-                } else {
-                    selectElement.innerHTML = '<option value="">该用户未参与任何群聊</option>';
-                }
-
-                selectElement.disabled = false;
-            } catch (error) {
-                selectElement.innerHTML = '<option value="">加载失败</option>';
-                selectElement.disabled = false;
-                console.error('加载群聊列表失败:', error);
-            }
-        }
-
-        /**
-         * 修改角色选择函数，同时处理学员信息字段的启用/禁用
-         */
-        const originalSelectRole = window.selectRole;
-        window.selectRole = function(button, role) {
-            // 调用原始函数
-            if (originalSelectRole) {
-                originalSelectRole(button, role);
-            }
-
-            const row = button.closest('tr');
-            const isParent = role === 'parent';
-
-            // 启用/禁用学员信息字段
-            const studentNameInput = row.querySelector('[data-field="student_name"]');
-            const studentEnglishNameInput = row.querySelector('[data-field="student_english_name"]');
-            const classRoomSelect = row.querySelector('[data-field="student_class_room_id_select"]');
-            const classRoomInput = row.querySelector('[data-field="student_class_room_id"]');
-
-            if (studentNameInput) {
-                studentNameInput.disabled = !isParent;
-                if (!isParent) studentNameInput.value = '';
-            }
-            if (studentEnglishNameInput) {
-                studentEnglishNameInput.disabled = !isParent;
-                if (!isParent) studentEnglishNameInput.value = '';
-            }
-            if (classRoomSelect) {
-                classRoomSelect.disabled = !isParent;
-                if (!isParent) {
-                    classRoomSelect.innerHTML = '<option value="">-- 选择群聊 --</option>';
-                }
-            }
-            if (classRoomInput) {
-                classRoomInput.disabled = !isParent;
-                if (!isParent) classRoomInput.value = '';
-            }
-
-            // 如果切换到家长角色，加载群聊列表
-            if (isParent && classRoomSelect) {
-                const userId = row.dataset.originalId;
-                const currentRoomId = classRoomInput ? classRoomInput.value : '';
-                loadUserGroups(userId, classRoomSelect, currentRoomId);
-            }
-        };
-    </script>
+        showToast(`批量保存完成：成功 ${success}，失败 ${fail}`, fail > 0);
+        loadStats();
+    }
+</script>
 </body>
 </html>

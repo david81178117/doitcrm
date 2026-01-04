@@ -86,12 +86,18 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
         .form-row-single {
             display: flex;
-            gap: 12px;
+            gap: 15px;
             align-items: flex-end;
             margin-bottom: 15px;
-            flex-wrap: wrap;
         }
 
         .form-row-single .form-group {
@@ -107,10 +113,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-        }
-
-        .form-group-wide {
-            flex: 2;
         }
 
         .form-group label {
@@ -134,79 +136,10 @@
             border-color: #667eea;
         }
 
-        .compact-select {
-            min-width: 120px;
-        }
-
-        .multi-select {
-            position: relative;
-        }
-
-        .multi-select-trigger {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fff;
-            text-align: left;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .multi-select-panel {
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            padding: 12px;
-            z-index: 50;
-            max-height: 320px;
-            overflow-y: auto;
-        }
-
-        .multi-select-panel.hidden {
-            display: none;
-        }
-
-        .multi-select-search {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
-        .multi-select-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .multi-select-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 240px;
-            overflow-y: auto;
-        }
-
-        .multi-select-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .multi-select-item:hover {
-            background: #f5f5f5;
+        .time-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
         .btn {
@@ -533,6 +466,24 @@
             word-break: break-word;
         }
 
+        .expand-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #e0e0e0;
+            background: #fafafa;
+            border-radius: 0;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .expand-btn:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
         /* 学员信息样式 */
         .student-info-section {
             margin-top: 20px;
@@ -607,13 +558,25 @@
         }
 
         @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(400px); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
         }
 
         /* 响应式设计 */
@@ -643,9 +606,17 @@
                 grid-template-columns: 1fr;
             }
 
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
             .form-row-single {
                 flex-direction: column;
                 align-items: stretch;
+            }
+
+            .time-range {
+                grid-template-columns: 1fr;
             }
 
             .message-item {
@@ -742,103 +713,9 @@
             animation: spin 1s linear infinite;
         }
 
-        .multi-users-section {
-            padding: 20px 30px;
-            border-bottom: 1px solid #e0e0e0;
-            max-height: 320px;
-            overflow-y: auto;
-            background: #fffdfa;
-        }
-
-        .multi-users-section.hidden {
-            display: none;
-        }
-
-        .multi-users-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-
-        .multi-user-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 10px;
-        }
-
-        .multi-user-item {
-            padding: 10px 12px;
-            background: #f9fafb;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            gap: 10px;
-        }
-
-        .multi-user-item.selected {
-            border-color: #667eea;
-            background: #e3f2fd;
-        }
-
-        .multi-user-item:hover {
-            border-color: #667eea;
-        }
-
-        .multi-user-meta {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .multi-messages-section {
-            padding: 20px 30px 30px;
-            background: #fff;
-            display: none;
-        }
-
-        .multi-messages-content {
-            background: #f9fafb;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 16px;
-            min-height: 260px;
-            max-height: 520px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .multi-analysis-section {
-            margin-top: 16px;
-            background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
-            border-radius: 12px;
-            padding: 18px;
-            border: 2px solid #4a90e2;
-            display: none;
-        }
-
-        .multi-analysis-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #d0e7ff;
-        }
-
-        .multi-analysis-content {
-            background: white;
-            padding: 14px;
-            border-radius: 8px;
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: 500px;
-            overflow-y: auto;
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -849,7 +726,7 @@
             <div class="header-content">
                 <div>
                     <h1>📨 用户消息查询系统</h1>
-                    <p>查询企业微信用户消息，按对话分组展示</p>
+                    <p>查询企业微信用户的所有发送消息，按对话分组展示</p>
                 </div>
                 <div class="version-input-container">
                     <input type="text" id="version-input" placeholder="版本" class="version-input" autocomplete="off" />
@@ -860,40 +737,14 @@
         <!-- 查询表单 -->
         <div class="query-form">
             <div class="form-row-single">
-                <div class="form-group form-group-wide">
-                    <label for="user-name-input">用户 / 学员 / ID</label>
+                <div class="form-group">
+                    <label for="user-name-input">用户姓名</label>
                     <input
                         type="text"
                         id="user-name-input"
-                        placeholder="支持用户姓名、学员姓名、用户ID"
+                        placeholder="输入用户姓名或学员姓名"
                         autocomplete="off"
                     />
-                </div>
-                <div class="form-group">
-                    <label for="section-select">段</label>
-                    <select id="section-select" class="compact-select">
-                        <option value="">全部</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="level-select">阶</label>
-                    <select id="level-select" class="compact-select">
-                        <option value="">全部</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="class-select">班级</label>
-                    <div class="multi-select" id="class-select">
-                        <button type="button" class="multi-select-trigger" id="class-trigger">全部</button>
-                        <div class="multi-select-panel hidden" id="class-panel">
-                            <input type="text" class="multi-select-search" id="class-search" placeholder="搜索班级/roomid">
-                            <div class="multi-select-actions">
-                                <span id="class-count">可选 0</span>
-                                <button type="button" class="btn btn-secondary" onclick="clearClassSelection()">清空</button>
-                            </div>
-                            <div class="multi-select-list" id="class-list"></div>
-                        </div>
-                    </div>
                 </div>
                 <div class="form-group">
                     <label for="start-time-input">开始时间</label>
@@ -904,42 +755,10 @@
                     <input type="datetime-local" id="end-time-input" />
                 </div>
                 <div class="form-group">
-                    <button class="btn btn-secondary" onclick="resetTimeRange()">重置为默认（30天）</button>
+                    <button class="btn btn-secondary" onclick="resetTimeRange()">
+                        重置为默认（30天）
+                    </button>
                 </div>
-                <div class="form-group">
-                    <button class="btn btn-primary" onclick="applyMultiFilters()">查询</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="multi-users-section" class="multi-users-section hidden">
-            <div class="multi-users-header">
-                <div>筛选结果 (<span id="multi-user-count">0</span>人)</div>
-                <div>
-                    <label><input type="checkbox" id="multi-select-all" onchange="toggleMultiSelectAll()"> 全选</label>
-                </div>
-            </div>
-            <div id="multi-user-list" class="multi-user-list"></div>
-        </div>
-
-        <div class="multi-messages-section">
-            <div class="messages-header">
-                聊天记录汇总
-                <button class="btn btn-secondary" id="multi-aggregate-btn" onclick="viewMultiMessages()" disabled style="margin-left: 20px;">汇总内容</button>
-                <button class="btn btn-primary" id="multi-analysis-btn" onclick="runMultiAnalysis()" disabled style="margin-left: 10px;">智能总结</button>
-            </div>
-            <div id="multi-messages-content" class="multi-messages-content">
-                <div class="empty-state">
-                    <div style="font-size: 48px; margin-bottom: 15px;">💬</div>
-                    <div style="font-size: 16px;">请先筛选用户并查看聊天记录</div>
-                </div>
-            </div>
-            <div id="multi-analysis-section" class="multi-analysis-section">
-                <div class="multi-analysis-header">
-                    <h4>🤖 AI智能总结</h4>
-                    <span class="analysis-meta" id="multi-analysis-meta"></span>
-                </div>
-                <div class="multi-analysis-content" id="multi-analysis-content"></div>
             </div>
         </div>
 
@@ -949,7 +768,9 @@
                 <div class="user-selection-header" id="user-selection-header">
                     发现多个匹配用户，请选择：
                 </div>
-                <div class="user-list" id="user-list"></div>
+                <div class="user-list" id="user-list">
+                    <!-- 动态生成用户列表 -->
+                </div>
             </div>
         </div>
 
@@ -962,11 +783,15 @@
                         <div class="selected-user-name" id="user-display-name">张三</div>
                         <div class="selected-user-meta">
                             <span id="user-role-text">家长</span> ·
-                            <span id="user-id-text">wmqDzZEw...</span>
+                            <span id="user-id-text">wmqDzZEw...</span> ·
+                            <span id="message-count-text">加载中...</span>
                         </div>
                     </div>
                 </div>
                 <div>
+                    <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
+                        重新选择
+                    </button>
                     <button class="btn btn-primary btn-sm" id="ai-summary-btn" onclick="handleAISummary()">
                         <span id="ai-summary-text">智能总结</span>
                         <span id="ai-summary-spinner" style="display:none;">⏳</span>
@@ -1004,7 +829,9 @@
                     <h4>🤖 AI智能总结</h4>
                     <span class="summary-meta" id="summary-meta"></span>
                 </div>
-                <div class="summary-content" id="summary-content"></div>
+                <div class="summary-content" id="summary-content">
+                    <!-- 总结内容将在这里显示 -->
+                </div>
             </div>
         </div>
 
@@ -1012,7 +839,7 @@
         <div class="messages-container">
             <div class="empty-state" id="empty-state">
                 <div class="empty-state-icon">🔍</div>
-                <div class="empty-state-text">请输入关键词开始查询</div>
+                <div class="empty-state-text">请输入用户姓名开始查询</div>
             </div>
 
             <div class="loading-state" id="loading-state" style="display: none;">
@@ -1020,50 +847,45 @@
                 <div>正在加载消息...</div>
             </div>
 
-            <div id="messages-container"></div>
+            <div id="messages-container">
+                <!-- 动态生成对话卡片 -->
+            </div>
         </div>
     </div>
 
     <script>
         const API_BASE = '';
         let selectedUser = null;
-        let isTeacherMode = false;
+        let isTeacherMode = false;  // 版本号切换状态，默认为家长模式
         let searchTimeout = null;
-        let multiUsers = [];
-        let selectedUserIds = [];
-        let aggregatedText = '';
-        let aggregatedMeta = { total_users: 0, total_messages: 0 };
-        let hierarchyOptions = { sections: [], levels: [], classes: [] };
-        let selectedClassIds = [];
 
+        // 页面加载时初始化
         window.onload = () => {
             resetTimeRange();
-            loadFilterOptions();
             setupEventListeners();
         };
 
+        // 设置事件监听器
         function setupEventListeners() {
             const nameInput = document.getElementById('user-name-input');
             const versionInput = document.getElementById('version-input');
-            const sectionSelect = document.getElementById('section-select');
-            const levelSelect = document.getElementById('level-select');
-            const classTrigger = document.getElementById('class-trigger');
-            const classPanel = document.getElementById('class-panel');
-            const classSearch = document.getElementById('class-search');
 
+            // 版本号切换逻辑
             versionInput.addEventListener('input', function() {
                 const value = this.value.trim();
                 if (value === '111') {
                     isTeacherMode = true;
                     showToast('已切换到老师模式', false);
                     this.value = '';
+                    // 如果当前有用户名输入，重新搜索
                     const name = nameInput.value.trim();
                     if (name.length >= 1) {
-                        searchUsers(name, 'teacher');
+                        searchUsers(name, isTeacherMode ? 'teacher' : 'parent');
                     }
                 }
             });
 
+            // 用户名输入防抖
             nameInput.addEventListener('input', function() {
                 const name = this.value.trim();
                 clearTimeout(searchTimeout);
@@ -1077,35 +899,9 @@
                     hideUserSelection();
                 }
             });
-
-            sectionSelect.addEventListener('change', () => {
-                updateLevelOptions();
-                updateClassList();
-                markFiltersDirty();
-            });
-
-            levelSelect.addEventListener('change', () => {
-                updateClassList();
-                markFiltersDirty();
-            });
-
-            classTrigger.addEventListener('click', (event) => {
-                event.preventDefault();
-                classPanel.classList.toggle('hidden');
-                classSearch.focus();
-            });
-
-            classSearch.addEventListener('input', () => {
-                updateClassList();
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!document.getElementById('class-select').contains(event.target)) {
-                    classPanel.classList.add('hidden');
-                }
-            });
         }
 
+        // 重置时间范围为默认（30天）
         function resetTimeRange() {
             const endTime = new Date();
             const startTime = new Date(endTime - 30 * 24 * 60 * 60 * 1000);
@@ -1114,6 +910,7 @@
             document.getElementById('start-time-input').value = formatDatetimeLocal(startTime);
         }
 
+        // 格式化日期为datetime-local输入框格式
         function formatDatetimeLocal(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1123,9 +920,12 @@
             return `${year}-${month}-${day}T${hours}:${minutes}`;
         }
 
+        // 搜索用户
         async function searchUsers(name, role) {
             try {
-                const url = `/api/search-users?keyword=${encodeURIComponent(name)}&role=${role}`;
+                // role 现在总是传递 'parent' 或 'teacher'
+                const url = `/api/search-users?name=${encodeURIComponent(name)}&role=${role}`;
+
                 const response = await fetch(url);
                 const result = await response.json();
 
@@ -1138,8 +938,10 @@
                     showToast('未找到匹配的用户', true);
                     hideUserSelection();
                 } else if (result.count === 1) {
+                    // 唯一匹配，直接选择
                     selectUser(result.users[0]);
                 } else {
+                    // 多个匹配，显示选择列表
                     showUserSelection(result.users);
                 }
             } catch (error) {
@@ -1147,369 +949,7 @@
             }
         }
 
-        async function loadFilterOptions() {
-            try {
-                const response = await fetch('/api/filter-options');
-                const result = await response.json();
-                if (result.status !== 'success') return;
-                const options = result.options || {};
-                hierarchyOptions = {
-                    sections: options.sections || [],
-                    levels: options.levels || [],
-                    classes: options.classes || []
-                };
-
-                const sectionSelect = document.getElementById('section-select');
-                sectionSelect.innerHTML = '<option value="">全部</option>';
-                hierarchyOptions.sections.forEach(section => {
-                    sectionSelect.innerHTML += `<option value="${section.id}">${section.name}</option>`;
-                });
-
-                updateLevelOptions();
-                updateClassList();
-
-            } catch (error) {
-                showToast('加载筛选选项失败', true);
-            }
-        }
-
-        function updateLevelOptions() {
-            const sectionId = document.getElementById('section-select').value;
-            const levelSelect = document.getElementById('level-select');
-            const previousLevel = levelSelect.value;
-            levelSelect.innerHTML = '<option value="">全部</option>';
-            const levels = sectionId
-                ? hierarchyOptions.levels.filter(level => String(level.section_id) === String(sectionId))
-                : hierarchyOptions.levels;
-            levels.forEach(level => {
-                levelSelect.innerHTML += `<option value="${level.id}">${level.name}</option>`;
-            });
-            if (previousLevel && levels.some(level => String(level.id) === String(previousLevel))) {
-                levelSelect.value = previousLevel;
-            } else {
-                levelSelect.value = '';
-            }
-        }
-
-        function updateClassList() {
-            const sectionId = document.getElementById('section-select').value;
-            const levelId = document.getElementById('level-select').value;
-            const searchValue = document.getElementById('class-search').value.trim().toLowerCase();
-            const classList = document.getElementById('class-list');
-            const classCount = document.getElementById('class-count');
-
-            let classes = hierarchyOptions.classes.slice();
-            if (sectionId) {
-                classes = classes.filter(cls => String(cls.section_id) === String(sectionId));
-            }
-            if (levelId) {
-                classes = classes.filter(cls => String(cls.level_id) === String(levelId));
-            }
-            if (searchValue) {
-                classes = classes.filter(cls => {
-                    const name = (cls.name || '').toLowerCase();
-                    const roomId = (cls.room_id || '').toLowerCase();
-                    return name.includes(searchValue) || roomId.includes(searchValue);
-                });
-            }
-
-            const allowedIds = new Set(classes.map(cls => String(cls.id)));
-            selectedClassIds = selectedClassIds.filter(id => allowedIds.has(String(id)));
-
-            classCount.textContent = `可选 ${classes.length}`;
-            classList.innerHTML = '';
-            if (!classes.length) {
-                classList.innerHTML = '<div class="multi-select-item">暂无班级</div>';
-                updateClassTrigger();
-                return;
-            }
-
-            classes.forEach(cls => {
-                const id = String(cls.id);
-                const label = cls.name || cls.room_id || `班级 ${id}`;
-                const checked = selectedClassIds.includes(id);
-                const item = document.createElement('label');
-                item.className = 'multi-select-item';
-                item.innerHTML = `
-                    <input type="checkbox" value="${id}" ${checked ? 'checked' : ''}>
-                    <span>${label}</span>
-                `;
-                item.querySelector('input').addEventListener('change', (event) => {
-                    if (event.target.checked) {
-                        if (!selectedClassIds.includes(id)) selectedClassIds.push(id);
-                    } else {
-                        selectedClassIds = selectedClassIds.filter(val => val !== id);
-                    }
-                    updateClassTrigger();
-                    markFiltersDirty();
-                });
-                classList.appendChild(item);
-            });
-            updateClassTrigger();
-        }
-
-        function updateClassTrigger() {
-            const trigger = document.getElementById('class-trigger');
-            if (!selectedClassIds.length) {
-                trigger.textContent = '全部';
-                return;
-            }
-            if (selectedClassIds.length === 1) {
-                const cls = hierarchyOptions.classes.find(c => String(c.id) === String(selectedClassIds[0]));
-                trigger.textContent = cls ? (cls.name || cls.room_id || '已选 1 个') : '已选 1 个';
-                return;
-            }
-            trigger.textContent = `已选 ${selectedClassIds.length} 个`;
-        }
-
-        function clearClassSelection() {
-            selectedClassIds = [];
-            updateClassList();
-            markFiltersDirty();
-        }
-
-        async function applyMultiFilters() {
-            const filters = {
-                section_id: document.getElementById('section-select').value,
-                level_id: document.getElementById('level-select').value,
-                class_ids: selectedClassIds.length ? selectedClassIds : undefined,
-                keyword: document.getElementById('user-name-input').value.trim()
-            };
-
-            Object.keys(filters).forEach(key => {
-                if (!filters[key]) delete filters[key];
-            });
-
-            if (!isTeacherMode) {
-                filters.role = 'parent';
-            } else {
-                filters.role = 'teacher';
-            }
-
-            try {
-                const response = await fetch('/api/filter-users', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filters})
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    showToast(result.message || '筛选失败', true);
-                    return;
-                }
-                multiUsers = result.users || [];
-                selectedUserIds = [];
-                aggregatedText = '';
-                aggregatedMeta = { total_users: 0, total_messages: 0 };
-                const multiMessagesSection = document.querySelector('.multi-messages-section');
-                multiMessagesSection.style.display = 'block';
-                document.getElementById('multi-messages-content').innerHTML = `
-                    <div class="empty-state">
-                        <div style="font-size: 40px; margin-bottom: 12px;">🗂️</div>
-                        <div style="font-size: 14px;">请先勾选用户，再点击“汇总内容”</div>
-                    </div>
-                `;
-                document.getElementById('multi-analysis-section').style.display = 'none';
-                document.getElementById('multi-aggregate-btn').disabled = true;
-                document.getElementById('multi-analysis-btn').disabled = true;
-                renderMultiUsers();
-                showToast(`筛选成功，找到 ${result.count} 个用户`);
-            } catch (error) {
-                showToast('筛选失败: ' + error.message, true);
-            }
-        }
-
-        function markFiltersDirty() {
-            multiUsers = [];
-            selectedUserIds = [];
-            aggregatedText = '';
-            aggregatedMeta = { total_users: 0, total_messages: 0 };
-            document.getElementById('multi-users-section').classList.add('hidden');
-            document.querySelector('.multi-messages-section').style.display = 'none';
-            document.getElementById('multi-aggregate-btn').disabled = true;
-            document.getElementById('multi-analysis-btn').disabled = true;
-        }
-
-        function renderMultiUsers() {
-            const section = document.getElementById('multi-users-section');
-            const list = document.getElementById('multi-user-list');
-            const count = document.getElementById('multi-user-count');
-            const selectAll = document.getElementById('multi-select-all');
-
-            if (!multiUsers.length) {
-                section.classList.add('hidden');
-                return;
-            }
-
-            section.classList.remove('hidden');
-            count.textContent = multiUsers.length;
-            list.innerHTML = '';
-            selectAll.checked = false;
-
-            multiUsers.forEach(user => {
-                const item = document.createElement('div');
-                item.className = 'multi-user-item';
-                item.onclick = (e) => {
-                    if (e.target.type !== 'checkbox') {
-                        const checkbox = item.querySelector('input[type="checkbox"]');
-                        checkbox.checked = !checkbox.checked;
-                        toggleMultiUser(user.wechat_id, checkbox.checked);
-                    }
-                };
-
-                const roleText = user.user_role === 'head_teacher' ? '班主任' :
-                                 user.user_role === 'teacher' ? '老师' : '家长';
-                const studentInfo = user.student_name ? `学员: ${user.student_name}` : '学员: 未关联';
-                const messageInfo = `${user.text_message_count || 0}条消息`;
-
-                item.innerHTML = `
-                    <input type="checkbox" data-user-id="${user.wechat_id}"
-                        onchange="toggleMultiUser('${user.wechat_id}', this.checked)">
-                    <div>
-                        <div class="user-name">${user.display_name}</div>
-                        <div class="multi-user-meta">${roleText} · ${studentInfo} · ${messageInfo}</div>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        function toggleMultiUser(userId, isSelected) {
-            if (isSelected) {
-                if (!selectedUserIds.includes(userId)) selectedUserIds.push(userId);
-            } else {
-                selectedUserIds = selectedUserIds.filter(id => id !== userId);
-            }
-
-            document.getElementById('multi-aggregate-btn').disabled = selectedUserIds.length === 0;
-            document.getElementById('multi-analysis-btn').disabled = true;
-
-            const allCheckboxes = document.querySelectorAll('.multi-user-item input[type="checkbox"]');
-            const selectAllCheckbox = document.getElementById('multi-select-all');
-            selectAllCheckbox.checked = allCheckboxes.length > 0 &&
-                selectedUserIds.length === allCheckboxes.length;
-
-            document.querySelectorAll('.multi-user-item').forEach(item => {
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                if (checkbox.checked) {
-                    item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
-                }
-            });
-        }
-
-        function toggleMultiSelectAll() {
-            const isChecked = document.getElementById('multi-select-all').checked;
-            const checkboxes = document.querySelectorAll('.multi-user-item input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-                toggleMultiUser(checkbox.getAttribute('data-user-id'), isChecked);
-            });
-        }
-
-        async function viewMultiMessages() {
-            if (!selectedUserIds.length) {
-                showToast('请先选择用户', true);
-                return;
-            }
-
-            const startTime = document.getElementById('start-time-input').value;
-            const endTime = document.getElementById('end-time-input').value;
-            const section = document.querySelector('.multi-messages-section');
-            const content = document.getElementById('multi-messages-content');
-
-            section.style.display = 'block';
-            content.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><div>正在加载聊天记录...</div></div>';
-
-            try {
-                const aggregateResponse = await fetch('/api/aggregate-messages', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_ids: selectedUserIds, start_time: startTime, end_time: endTime })
-                });
-                const aggregateResult = await aggregateResponse.json();
-                if (aggregateResult.status !== 'success') {
-                    content.innerHTML = `<div class="empty-state"><div style="color:#f44336;">${aggregateResult.message}</div></div>`;
-                    showToast(aggregateResult.message || '加载失败', true);
-                    return;
-                }
-                aggregatedText = aggregateResult.aggregated_text || '';
-                aggregatedMeta = {
-                    total_users: aggregateResult.total_users || 0,
-                    total_messages: aggregateResult.total_messages || 0
-                };
-                content.textContent = aggregatedText;
-                document.getElementById('multi-analysis-btn').disabled = !aggregatedText;
-                showToast(`已汇总 ${aggregatedMeta.total_users} 位用户，共 ${aggregatedMeta.total_messages} 条消息`);
-            } catch (error) {
-                content.innerHTML = `<div class="empty-state"><div style="color:#f44336;">加载失败: ${error.message}</div></div>`;
-                showToast('加载失败: ' + error.message, true);
-            }
-        }
-
-        async function runMultiAnalysis() {
-            if (!aggregatedText) {
-                showToast('请先点击“汇总内容”', true);
-                return;
-            }
-
-            const startTime = document.getElementById('start-time-input').value;
-            const endTime = document.getElementById('end-time-input').value;
-            const section = document.querySelector('.multi-messages-section');
-            const analysisSection = document.getElementById('multi-analysis-section');
-            const analysisContent = document.getElementById('multi-analysis-content');
-            const meta = document.getElementById('multi-analysis-meta');
-            const btn = document.getElementById('multi-analysis-btn');
-
-            section.style.display = 'block';
-            analysisSection.style.display = 'block';
-            analysisContent.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><div>AI正在分析，请稍候...</div></div>';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch('/api/multi-user-analysis', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_ids: selectedUserIds,
-                        start_time: startTime,
-                        end_time: endTime,
-                        aggregated_text: aggregatedText,
-                        total_users: aggregatedMeta.total_users,
-                        total_messages: aggregatedMeta.total_messages,
-                        mode: isTeacherMode ? 'teacher' : 'parent'
-                    })
-                });
-                const result = await response.json();
-                if (result.status !== 'success') {
-                    analysisContent.innerHTML = `<div style="color:#f44336;">分析失败: ${result.message}</div>`;
-                    showToast(result.message || '分析失败', true);
-                    return;
-                }
-                analysisContent.textContent = result.analysis;
-                meta.textContent = `${result.user_count}位用户 · ${result.message_count}条消息 · 耗时${(result.duration_ms/1000).toFixed(1)}秒`;
-                showToast(`已分析 ${result.user_count} 位用户`);
-            } catch (error) {
-                analysisContent.innerHTML = `<div style="color:#f44336;">分析失败: ${error.message}</div>`;
-                showToast('分析失败: ' + error.message, true);
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function resetMultiFilters() {
-            document.getElementById('section-select').value = '';
-            document.getElementById('level-select').value = '';
-            document.getElementById('class-select').value = '';
-            document.getElementById('multi-users-section').classList.add('hidden');
-            selectedUserIds = [];
-            aggregatedText = '';
-            aggregatedMeta = { total_users: 0, total_messages: 0 };
-            document.getElementById('multi-aggregate-btn').disabled = true;
-            document.getElementById('multi-analysis-btn').disabled = true;
-        }
-
+        // 显示用户选择列表
         function showUserSelection(users) {
             const area = document.getElementById('user-selection-area');
             const header = document.getElementById('user-selection-header');
@@ -1523,12 +963,8 @@
                 item.className = 'user-item';
                 item.onclick = () => selectUser(user);
 
-                let roleText = '未分类';
-                if (user.user_role === 'teacher' || user.user_role === 'head_teacher') {
-                    roleText = '老师';
-                } else if (user.user_role === 'parent') {
-                    roleText = '家长';
-                }
+                const roleText = user.user_role === 'teacher' ? '老师' :
+                               user.user_role === 'parent' ? '家长' : '未分类';
 
                 item.innerHTML = `
                     <div class="user-item-main">
@@ -1544,10 +980,12 @@
             area.style.display = 'block';
         }
 
+        // 隐藏用户选择列表
         function hideUserSelection() {
             document.getElementById('user-selection-area').style.display = 'none';
         }
 
+        // 选择用户
         function selectUser(user) {
             selectedUser = user;
             hideUserSelection();
@@ -1555,24 +993,25 @@
             loadUserMessages();
         }
 
+        // 显示用户信息
         function showUserInfo(user) {
-            let roleText = '未分类';
-            if (user.user_role === 'teacher' || user.user_role === 'head_teacher') {
-                roleText = '老师';
-            } else if (user.user_role === 'parent') {
-                roleText = '家长';
-            }
-
-            const avatar = roleText === '老师' ? '👨‍🏫' : '👤';
+            const roleText = user.user_role === 'teacher' ? '老师' :
+                           user.user_role === 'parent' ? '家长' : '未分类';
+            const avatar = user.user_role === 'teacher' ? '👨‍🏫' : '👤';
 
             document.getElementById('user-avatar').textContent = avatar;
             document.getElementById('user-display-name').textContent = user.display_name;
             document.getElementById('user-role-text').textContent = roleText;
             document.getElementById('user-id-text').textContent = user.id_prefix + '...';
+            document.getElementById('message-count-text').textContent = '加载中...';
+
             document.getElementById('selected-user-info').style.display = 'block';
 
+            // 如果是家长角色，显示学员信息输入区域
             if (user.user_role === 'parent') {
                 document.getElementById('student-info-section').style.display = 'block';
+
+                // 填充已有的学员信息
                 document.getElementById('student-name-input').value = user.student_name || '';
                 document.getElementById('student-english-name-input').value = user.student_english_name || '';
                 document.getElementById('student-class-room-id-input').value = user.student_class_room_id || '';
@@ -1581,6 +1020,7 @@
             }
         }
 
+        // 清除选择
         function clearSelection() {
             selectedUser = null;
             document.getElementById('selected-user-info').style.display = 'none';
@@ -1590,6 +1030,7 @@
             document.getElementById('ai-summary-section').style.display = 'none';
         }
 
+        // 加载用户消息
         async function loadUserMessages() {
             const container = document.getElementById('messages-container');
             const emptyState = document.getElementById('empty-state');
@@ -1604,6 +1045,7 @@
                 const endTime = document.getElementById('end-time-input').value;
 
                 const url = `/api/user-messages?user_id=${encodeURIComponent(selectedUser.original_id)}&start_time=${startTime}&end_time=${endTime}`;
+
                 const response = await fetch(url);
                 const result = await response.json();
 
@@ -1621,8 +1063,11 @@
                         <div class="empty-state-icon">📭</div>
                         <div class="empty-state-text">该时间范围内没有找到消息</div>
                     `;
+                    document.getElementById('message-count-text').textContent = '0条消息';
                 } else {
                     const totalMessages = result.conversations.reduce((sum, conv) => sum + conv.message_count, 0);
+                    document.getElementById('message-count-text').textContent =
+                        `${totalMessages}条消息 · ${result.conversation_count}个对话`;
                     renderConversations(result.conversations);
                 }
             } catch (error) {
@@ -1632,6 +1077,7 @@
             }
         }
 
+        // 渲染对话列表
         function renderConversations(conversations) {
             const container = document.getElementById('messages-container');
             container.innerHTML = '';
@@ -1642,7 +1088,8 @@
             });
         }
 
-        function createConversationCard(conv) {
+        // 创建对话卡片
+        function createConversationCard(conv, index) {
             const card = document.createElement('div');
             const isGroup = conv.conversation_type === 'group';
             card.className = `conversation-card ${isGroup ? 'group-conversation' : 'private-conversation'}`;
@@ -1669,6 +1116,7 @@
             return card;
         }
 
+        // 创建消息HTML
         function createMessageHTML(msg) {
             const directionClass = msg.direction === 'sent' ? 'message-sent' : 'message-received';
             const senderText = msg.direction === 'sent' ? '我' : '对方';
@@ -1682,6 +1130,7 @@
             `;
         }
 
+        // 格式化日期时间
         function formatDateTime(isoString) {
             if (!isoString) return '-';
             const date = new Date(isoString);
@@ -1693,6 +1142,7 @@
             return `${year}-${month}-${day} ${hours}:${minutes}`;
         }
 
+        // 格式化时间（仅时分秒）
         function formatTime(isoString) {
             if (!isoString) return '-';
             const date = new Date(isoString);
@@ -1704,12 +1154,14 @@
             return `${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
 
+        // HTML转义
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
+        // 保存学员信息
         async function saveStudentInfo() {
             if (!selectedUser) {
                 showToast('请先选择用户', true);
@@ -1728,7 +1180,9 @@
             try {
                 const response = await fetch('/api/update-student-info', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         user_id: selectedUser.original_id,
                         student_name: studentName,
@@ -1744,17 +1198,21 @@
                     return;
                 }
 
+                // 更新selectedUser对象中的学员信息
                 selectedUser.student_name = studentName;
                 selectedUser.student_english_name = studentEnglishName;
                 selectedUser.student_class_room_id = studentClassRoomId;
 
                 showToast('学员信息保存成功', false);
+
             } catch (error) {
                 showToast('保存失败: ' + error.message, true);
             }
         }
 
+        // Toast通知
         function showToast(message, isError = false) {
+            // 移除旧的toast
             document.querySelectorAll('.toast').forEach(t => t.remove());
 
             const toast = document.createElement('div');
@@ -1768,18 +1226,25 @@
             }, 2500);
         }
 
+        // ============ AI智能总结功能 ============
+
+        /**
+         * 处理AI智能总结按钮点击
+         */
         async function handleAISummary() {
             if (!selectedUser) {
                 showToast('请先选择用户', true);
                 return;
             }
 
+            // 检查是否有消息数据
             const messagesContainer = document.getElementById('messages-container');
             if (!messagesContainer || messagesContainer.children.length === 0) {
                 showToast('没有可总结的消息数据', true);
                 return;
             }
 
+            // 禁用按钮，显示加载状态
             const summaryBtn = document.getElementById('ai-summary-btn');
             const summaryText = document.getElementById('ai-summary-text');
             const summarySpinner = document.getElementById('ai-summary-spinner');
@@ -1788,6 +1253,7 @@
             summaryText.textContent = '正在总结...';
             summarySpinner.style.display = 'inline';
 
+            // 显示总结区域（加载状态）
             const summarySection = document.getElementById('ai-summary-section');
             const summaryContent = document.getElementById('summary-content');
             const summaryMeta = document.getElementById('summary-meta');
@@ -1796,33 +1262,41 @@
             summaryContent.innerHTML = '<div class="summary-loading">AI正在分析对话内容</div>';
 
             try {
+                // 获取当前查询的时间范围
                 const startTime = document.getElementById('start-time-input').value;
                 const endTime = document.getElementById('end-time-input').value;
 
+                // 调用后端总结API
                 const response = await fetch('/api/summarize-messages', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         user_id: selectedUser.original_id,
                         user_name: selectedUser.display_name,
                         start_time: startTime,
-                        end_time: endTime,
-                        mode: isTeacherMode ? 'teacher' : 'parent'
+                        end_time: endTime
                     })
                 });
 
                 const result = await response.json();
+
                 if (result.status === 'error') {
                     throw new Error(result.message);
                 }
 
+                // 显示总结结果
                 summaryContent.textContent = result.summary;
                 summaryMeta.textContent = `总结时间: ${formatDateTime(new Date().toISOString())} · 消息数: ${result.message_count}条 · 对话数: ${result.conversation_count}个`;
+
                 showToast('AI总结完成', false);
+
             } catch (error) {
                 summaryContent.innerHTML = `<div class="summary-error">❌ 总结失败: ${error.message}</div>`;
                 showToast('AI总结失败: ' + error.message, true);
             } finally {
+                // 恢复按钮状态
                 summaryBtn.disabled = false;
                 summaryText.textContent = '智能总结';
                 summarySpinner.style.display = 'none';

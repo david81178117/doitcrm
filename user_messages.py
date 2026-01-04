@@ -1,96 +1,118 @@
+#!/usr/bin/env python3
 """
-用户消息查询系统 - Flask后端
-提供用户搜索和消息查询API，支持按时间范围筛选、对话分组展示
+用户消息查询系统 v2 - Flask 后端
+整合查询入口：同一输入支持用户姓名、学员姓名、用户ID检索。
+保留页面布局与智能总结逻辑（Coze）。
 """
-from flask import Flask, jsonify, request, send_file
-import psycopg2
-import psycopg2.extras
 from datetime import datetime, timedelta
+import json
 import os
 import sys
-import json
 import time
+
+import psycopg2
+import psycopg2.extras
 import requests
+from flask import Flask, jsonify, request, send_file
 
 app = Flask(__name__)
 
 # Coze API 配置
-COZE_API_ENDPOINT = os.getenv('COZE_API_ENDPOINT', 'https://api.coze.cn/v3/chat')
-COZE_TOKEN = os.getenv('COZE_TOKEN', 'pat_s48QEakmtUKzi9C54JfycMcSTeke1lcwrUAzvhI4Igb3W3ikMvnDoWg9TYDJyLQ4')
-COZE_BOT_ID = os.getenv('COZE_BOT_ID', '7588778847907119144')
+COZE_API_ENDPOINT = os.getenv("COZE_API_ENDPOINT", "https://api.coze.cn/v3/chat")
+COZE_TOKEN = os.getenv("COZE_TOKEN", "pat_s48QEakmtUKzi9C54JfycMcSTeke1lcwrUAzvhI4Igb3W3ikMvnDoWg9TYDJyLQ4")
+COZE_BOT_ID = os.getenv("COZE_BOT_ID", "7588778847907119144")
+COZE_TEACHER_BOT_ID = os.getenv("COZE_TEACHER_BOT_ID", "7590225611420352553")
 
 print(f"Coze API配置: URL={COZE_API_ENDPOINT}, Bot ID={COZE_BOT_ID}", file=sys.stderr)
 
-# PostgreSQL连接配置（阿里云生产环境）
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'database': os.getenv('DB_NAME', 'wechat_db'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'doit123'),
-    'port': os.getenv('DB_PORT', '5432')
+    "host": os.getenv("DB_HOST", "localhost"),
+    "database": os.getenv("DB_NAME", "wechat_db_legacy"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "port": os.getenv("DB_PORT", "5432"),
 }
 
+
 def get_db_connection():
-    """获取PostgreSQL数据库连接"""
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return psycopg2.connect(database_url)
     return psycopg2.connect(**DB_CONFIG)
 
-@app.route('/api/search-users', methods=['GET'])
+
+def _parse_time_range(start_time, end_time, default_days=30):
+    if end_time:
+        end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+    else:
+        end_dt = datetime.now()
+
+    if start_time:
+        start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+    else:
+        start_dt = end_dt - timedelta(days=default_days)
+
+    return start_dt, end_dt
+
+
+@app.route("/api/search-users", methods=["GET"])
 def search_users():
     """
-    搜索用户API
-    查询参数:
-      - name: 用户姓名（必填，支持模糊匹配）
-      - role: 角色过滤 ('parent', 'teacher', 可选)
-    返回格式:
-      {
-        "status": "success",
-        "count": 2,
-        "users": [
-          {
-            "original_id": "wmqDzZEw...",
-            "display_name": "张三",
-            "user_role": "parent",
-            "id_prefix": "wmqDzZEw"
-          }
-        ]
-      }
+    统一搜索入口:
+      - keyword: 用户姓名 / 学员姓名 / 用户ID（必填）
+      - role: 角色过滤 ('parent' | 'teacher')
     """
-    name = request.args.get('name', '').strip()
-    role = request.args.get('role', '').strip()
+    keyword = request.args.get("keyword") or request.args.get("name") or ""
+    keyword = keyword.strip()
+    role = request.args.get("role", "").strip()
 
-    if not name:
-        return jsonify({'status': 'error', 'message': '请输入用户姓名'}), 400
-
-    if len(name) < 1:
-        return jsonify({'status': 'error', 'message': '请输入至少1个字符'}), 400
+    if not keyword:
+        return jsonify({"status": "error", "message": "请输入关键词"}), 400
 
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # 构建SQL查询
         query = """
 SELECT
-    original_id,
-    display_name,
-    user_role,
-    SUBSTRING(original_id, 1, 8) as id_prefix,
-    student_name,
-    student_english_name,
-    student_class_room_id
-FROM wecom_id_mappings
-WHERE id_type = 'user_id'
-  AND display_name IS NOT NULL
-  AND (display_name ILIKE %s OR student_name ILIKE %s)
+    m.original_id,
+    COALESCE(NULLIF(m.business_name, ''), NULLIF(m.wecom_nickname, ''), m.original_id) AS display_name,
+    m.user_role,
+    SUBSTRING(m.original_id, 1, 8) AS id_prefix,
+    s.name AS student_name,
+    s.english_name AS student_english_name,
+    s.class_room_id AS student_class_room_id
+FROM v2.wecom_id_mappings m
+LEFT JOIN v2.wecom_user_student_rel rel
+  ON rel.wecom_id = m.id AND rel.is_primary = TRUE
+LEFT JOIN v2.students s
+  ON s.id = rel.student_id
+WHERE m.id_type = 'user_id'
 """
-        params = [f'%{name}%', f'%{name}%']
 
-        # 如果指定了角色，添加角色过滤
-        if role in ['parent', 'teacher']:
-            query += " AND user_role = %s"
-            params.append(role)
+        params = []
+        if role == "teacher":
+            query += " AND m.user_role IN ('teacher', 'head_teacher')"
+        else:
+            query += " AND m.user_role = 'parent'"
 
-        query += " ORDER BY display_name, original_id LIMIT 50"
+        query += """
+  AND (
+        m.original_id ILIKE %s
+        OR m.business_name ILIKE %s
+        OR m.wecom_nickname ILIKE %s
+        OR s.name ILIKE %s
+        OR s.english_name ILIKE %s
+  )
+ORDER BY display_name, m.original_id
+LIMIT 50
+"""
+
+        like = f"%{keyword}%"
+        if role == "teacher":
+            params.extend([like, like, like, "%__no_student__", "%__no_student__"])
+        else:
+            params.extend([like, like, like, like, like])
 
         cur.execute(query, params)
         results = cur.fetchall()
@@ -98,145 +120,526 @@ WHERE id_type = 'user_id'
         cur.close()
         conn.close()
 
-        return jsonify({
-            'status': 'success',
-            'count': len(results),
-            'users': [dict(row) for row in results]
-        })
-
+        return jsonify({"status": "success", "count": len(results), "users": [dict(row) for row in results]})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/api/user-messages', methods=['GET'])
-def get_user_messages():
+
+@app.route("/api/filter-options", methods=["GET"])
+def get_filter_options():
     """
-    获取用户消息API（按对话分组）
-    查询参数:
-      - user_id: 企业微信ID（必填）
-      - start_time: 开始时间 ISO格式（可选，默认30天前）
-      - end_time: 结束时间 ISO格式（可选，默认当前时间）
-    返回格式:
-      {
-        "status": "success",
-        "user_id": "wmqDzZEw...",
-        "start_time": "2025-11-27T15:30:00",
-        "end_time": "2025-12-27T15:30:00",
-        "conversation_count": 5,
-        "conversations": [
-          {
-            "conversation_key": "wrqDzZEw...",
-            "conversation_type": "group",
-            "conversation_name": "锦鲤99班",
-            "message_count": 25,
-            "first_message_time": "2025-12-01T09:00:00",
-            "last_message_time": "2025-12-27T18:30:15",
-            "messages": [...]
-          }
-        ]
-      }
+    返回筛选下拉可选项（段/阶/班级/老师/班主任/学员）。
     """
-    user_id = request.args.get('user_id', '').strip()
-
-    if not user_id:
-        return jsonify({'status': 'error', 'message': '缺少user_id参数'}), 400
-
-    # 解析时间参数
     try:
-        end_time = request.args.get('end_time')
-        if end_time:
-            end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        options = {}
+
+        cur.execute(
+            """
+            SELECT id, name
+            FROM v2.sections
+            ORDER BY sort_order, name
+            """
+        )
+        options["sections"] = [dict(row) for row in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT id, name, section_id
+            FROM v2.levels
+            ORDER BY sort_order, name
+            """
+        )
+        options["levels"] = [dict(row) for row in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT
+                c.id,
+                c.name,
+                c.room_id,
+                c.level_id,
+                l.section_id
+            FROM v2.classes c
+            JOIN v2.levels l ON l.id = c.level_id
+            ORDER BY c.name
+            """
+        )
+        options["classes"] = [dict(row) for row in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT original_id AS id,
+                   COALESCE(NULLIF(business_name, ''), NULLIF(wecom_nickname, ''), original_id) AS name
+            FROM v2.wecom_id_mappings
+            WHERE id_type = 'user_id' AND user_role = 'teacher'
+            ORDER BY name
+            """
+        )
+        options["teachers"] = [dict(row) for row in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT original_id AS id,
+                   COALESCE(NULLIF(business_name, ''), NULLIF(wecom_nickname, ''), original_id) AS name
+            FROM v2.wecom_id_mappings
+            WHERE id_type = 'user_id' AND user_role = 'head_teacher'
+            ORDER BY name
+            """
+        )
+        options["head_teachers"] = [dict(row) for row in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT DISTINCT name
+            FROM v2.students
+            WHERE name IS NOT NULL AND name <> ''
+            ORDER BY name
+            """
+        )
+        options["students"] = [row["name"] for row in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        return jsonify({"status": "success", "options": options})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/filter-users", methods=["POST"])
+def filter_users():
+    """
+    多维筛选用户（用于多选分析）
+    """
+    try:
+        data = request.json or {}
+        filters = data.get("filters", {})
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        query = """
+            WITH user_data AS (
+                SELECT
+                    m.original_id,
+                    m.business_name,
+                    m.wecom_nickname,
+                    m.user_role,
+                    s.name AS student_name,
+                    s.english_name AS student_english_name,
+                    s.class_room_id AS student_class_room_id,
+                    c.id AS class_id,
+                    msg.text_message_count,
+                    ROW_NUMBER() OVER (PARTITION BY m.original_id ORDER BY rel.is_primary DESC NULLS LAST, s.id) AS rn
+                FROM v2.wecom_id_mappings m
+                LEFT JOIN v2.wecom_user_student_rel rel
+                    ON rel.wecom_id = m.id
+                LEFT JOIN v2.students s
+                    ON s.id = rel.student_id
+                LEFT JOIN v2.classes c
+                    ON c.id = s.class_id
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS text_message_count
+                    FROM v2.wecom_chat_logs wcl
+                    WHERE wcl.msgtype = 'text'
+                      AND (
+                        (wcl.roomid IS NOT NULL AND wcl.roomid <> '' AND wcl.from_user_id = m.original_id)
+                        OR (
+                            (wcl.roomid IS NULL OR wcl.roomid = '')
+                            AND (wcl.from_user_id = m.original_id OR m.original_id = ANY(wcl.tolist))
+                        )
+                      )
+                ) msg ON TRUE
+                WHERE m.id_type = 'user_id'
+            )
+            SELECT
+                original_id AS wechat_id,
+                COALESCE(NULLIF(business_name, ''), NULLIF(wecom_nickname, ''), original_id) AS display_name,
+                user_role,
+                student_name,
+                student_english_name,
+                student_class_room_id,
+                text_message_count
+            FROM user_data
+            WHERE rn = 1
+        """
+        params = []
+        additional_conditions = []
+
+        if filters.get("role"):
+            if filters["role"] == "teacher":
+                additional_conditions.append(" AND m.user_role IN ('teacher', 'head_teacher')")
+            else:
+                additional_conditions.append(" AND m.user_role = %s")
+                params.append(filters["role"])
+
+        if filters.get("keyword"):
+            additional_conditions.append("""
+                AND (
+                    m.original_id ILIKE %s
+                    OR m.business_name ILIKE %s
+                    OR m.wecom_nickname ILIKE %s
+                    OR s.name ILIKE %s
+                    OR s.english_name ILIKE %s
+                )
+            """)
+            like = f"%{filters['keyword']}%"
+            params.extend([like, like, like, like, like])
+
+        if filters.get("section_id"):
+            additional_conditions.append(" AND c.level_id IN (SELECT id FROM v2.levels WHERE section_id = %s)")
+            params.append(filters["section_id"])
+
+        if filters.get("level_id"):
+            additional_conditions.append(" AND c.level_id = %s")
+            params.append(filters["level_id"])
+
+        if filters.get("class_ids"):
+            raw_class_ids = filters.get("class_ids") or []
+            class_ids = []
+            for value in raw_class_ids:
+                try:
+                    class_ids.append(int(value))
+                except (TypeError, ValueError):
+                    continue
+            if class_ids:
+                additional_conditions.append(" AND c.id = ANY(%s)")
+                params.append(class_ids)
+
+        if filters.get("student_name"):
+            additional_conditions.append(" AND s.name = %s")
+            params.append(filters["student_name"])
+
+        if filters.get("teacher_id"):
+            additional_conditions.append(" AND m.original_id = %s")
+            params.append(filters["teacher_id"])
+
+        if filters.get("head_teacher_id"):
+            additional_conditions.append(" AND m.original_id = %s")
+            params.append(filters["head_teacher_id"])
+
+        # 在 CTE 的 WHERE 子句中插入额外条件
+        if additional_conditions:
+            query = query.replace(
+                "WHERE m.id_type = 'user_id'",
+                "WHERE m.id_type = 'user_id'" + "".join(additional_conditions)
+            )
+
+        query += " AND COALESCE(text_message_count, 0) > 0"
+        query += " ORDER BY display_name, text_message_count DESC NULLS LAST LIMIT 500"
+
+        cur.execute(query, params)
+        users = [dict(row) for row in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        return jsonify({"status": "success", "count": len(users), "users": users})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def aggregate_multi_user_messages(user_ids, start_time, end_time, max_messages_per_user=100):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    user_message_data = []
+    total_messages = 0
+
+    for user_id in user_ids:
+        cur.execute(
+            """
+            SELECT
+                m.original_id AS wechat_id,
+                COALESCE(NULLIF(m.business_name, ''), NULLIF(m.wecom_nickname, ''), m.original_id) AS display_name,
+                m.user_role,
+                s.name AS student_name
+            FROM v2.wecom_id_mappings m
+            LEFT JOIN v2.wecom_user_student_rel rel
+                ON rel.wecom_id = m.id AND rel.is_primary = TRUE
+            LEFT JOIN v2.students s
+                ON s.id = rel.student_id
+            WHERE m.id_type = 'user_id' AND m.original_id = %s
+            """,
+            (user_id,),
+        )
+        user_info = cur.fetchone()
+        if not user_info:
+            continue
+
+        query = """
+            SELECT
+                msgtime AT TIME ZONE 'Asia/Shanghai' as msgtime_local,
+                msgtype,
+                from_user_id,
+                roomid,
+                tolist,
+                content_payload,
+                CASE
+                    WHEN from_user_id = %s THEN 'sent'
+                    ELSE 'received'
+                END as message_direction
+            FROM v2.wecom_chat_logs
+            WHERE (
+                (roomid IS NOT NULL AND roomid <> '' AND from_user_id = %s)
+                OR (
+                    (roomid IS NULL OR roomid = '')
+                    AND (from_user_id = %s OR tolist[1] = %s)
+                )
+            )
+            AND msgtype = 'text'
+            AND msgtime >= %s
+            AND msgtime <= %s
+            ORDER BY msgtime DESC
+            LIMIT %s
+        """
+        cur.execute(query, (user_id, user_id, user_id, user_id, start_time, end_time, max_messages_per_user))
+        messages = cur.fetchall()
+
+        user_message_data.append(
+            {
+                "user_id": user_id,
+                "user_info": dict(user_info),
+                "messages": [dict(m) for m in messages],
+                "message_count": len(messages),
+            }
+        )
+        total_messages += len(messages)
+
+    cur.close()
+    conn.close()
+
+    user_message_data.sort(key=lambda x: x["message_count"], reverse=True)
+
+    aggregated = []
+    for data in user_message_data:
+        user_info = data["user_info"]
+        messages = data["messages"]
+
+        aggregated.append(f"\n{'='*80}")
+        display_name = user_info["display_name"] or user_info["wechat_id"][:16]
+        aggregated.append(f"用户: {display_name} ({user_info['wechat_id'][:16]}...)")
+        student_info = f"学员: {user_info['student_name']}" if user_info.get("student_name") else "学员: 未关联"
+        aggregated.append(f"{student_info} | 消息总数: {data['message_count']}条")
+        aggregated.append("=" * 80)
+
+        for msg in messages:
+            direction = "我" if msg["message_direction"] == "sent" else "对方"
+            time_str = msg["msgtime_local"].strftime("%m-%d %H:%M:%S")
+            content = (msg["content_payload"].get("content", "") if msg["content_payload"] else "")[:100]
+            aggregated.append(f"{time_str}  {direction}  {content}")
+
+        aggregated.append("")
+
+    return {
+        "text": "\n".join(aggregated),
+        "total_users": len(user_message_data),
+        "total_messages": total_messages,
+    }
+
+
+def call_coze_api_simple(aggregated_messages: str, bot_id: str) -> str:
+    headers = {"Authorization": f"Bearer {COZE_TOKEN}", "Content-Type": "application/json"}
+    payload = {
+        "bot_id": bot_id,
+        "user_id": f"multi_user_analysis_{int(time.time())}",
+        "stream": True,
+        "auto_save_history": True,
+        "additional_messages": [
+            {"role": "user", "content": aggregated_messages, "content_type": "text"}
+        ],
+    }
+
+    response = requests.post(
+        COZE_API_ENDPOINT, headers=headers, json=payload, timeout=120, stream=True
+    )
+    response.raise_for_status()
+
+    full_text = ""
+    current_event = None
+
+    for line in response.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8")
+
+        if line_str.startswith("event:"):
+            current_event = line_str[6:].strip()
+            continue
+
+        if line_str.startswith("data:"):
+            data_str = line_str[5:].strip()
+            if data_str == '"[DONE]"' or data_str == "[DONE]":
+                break
+            try:
+                data = json.loads(data_str)
+                if data.get("type") == "answer":
+                    content = data.get("content", "")
+                    if current_event == "conversation.message.delta":
+                        full_text += content
+                    elif current_event == "conversation.message.completed":
+                        full_text = content
+            except json.JSONDecodeError:
+                continue
+
+    if not full_text:
+        raise Exception("Coze API 返回了空的总结")
+
+    return full_text
+
+
+@app.route("/api/aggregate-messages", methods=["POST"])
+def aggregate_messages():
+    try:
+        data = request.json or {}
+        user_ids = data.get("user_ids", [])
+        start_time_str = data.get("start_time")
+        end_time_str = data.get("end_time")
+        max_messages_per_user = data.get("max_messages_per_user", 100)
+
+        if not user_ids:
+            return jsonify({"status": "error", "message": "缺少user_ids参数"}), 400
+
+        try:
+            start_dt, end_dt = _parse_time_range(start_time_str, end_time_str)
+        except ValueError as e:
+            return jsonify({"status": "error", "message": f"时间格式错误: {str(e)}"}), 400
+
+        aggregated_data = aggregate_multi_user_messages(
+            user_ids, start_dt, end_dt, max_messages_per_user
+        )
+
+        return jsonify(
+            {
+                "status": "success",
+                "total_users": aggregated_data["total_users"],
+                "total_messages": aggregated_data["total_messages"],
+                "aggregated_text": aggregated_data["text"],
+            }
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/multi-user-analysis", methods=["POST"])
+def multi_user_analysis():
+    try:
+        data = request.json or {}
+        user_ids = data.get("user_ids", [])
+        start_time_str = data.get("start_time")
+        end_time_str = data.get("end_time")
+        aggregated_text = (data.get("aggregated_text") or "").strip()
+        total_users = data.get("total_users")
+        total_messages = data.get("total_messages")
+        mode = data.get("mode", "parent")
+
+        if not user_ids:
+            return jsonify({"status": "error", "message": "缺少user_ids参数"}), 400
+
+        try:
+            start_dt, end_dt = _parse_time_range(start_time_str, end_time_str)
+        except ValueError as e:
+            return jsonify({"status": "error", "message": f"时间格式错误: {str(e)}"}), 400
+
+        if aggregated_text:
+            try:
+                total_users = int(total_users) if total_users is not None else len(user_ids)
+            except (TypeError, ValueError):
+                total_users = len(user_ids)
+            try:
+                total_messages = int(total_messages) if total_messages is not None else 0
+            except (TypeError, ValueError):
+                total_messages = 0
         else:
-            end_dt = datetime.now()
+            aggregated_data = aggregate_multi_user_messages(user_ids, start_dt, end_dt, max_messages_per_user=100)
+            if aggregated_data["total_messages"] == 0:
+                return jsonify({"status": "error", "message": "该时间范围内没有消息数据"}), 400
+            aggregated_text = aggregated_data["text"]
+            total_users = aggregated_data["total_users"]
+            total_messages = aggregated_data["total_messages"]
 
-        start_time = request.args.get('start_time')
-        if start_time:
-            start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        else:
-            start_dt = end_dt - timedelta(days=30)
+        start_time = time.time()
+        bot_id = COZE_TEACHER_BOT_ID if mode == "teacher" and COZE_TEACHER_BOT_ID else COZE_BOT_ID
+        analysis_result = call_coze_api_simple(aggregated_text, bot_id)
+        duration_ms = int((time.time() - start_time) * 1000)
 
-        # 限制查询范围不超过90天
-        if (end_dt - start_dt).days > 90:
-            return jsonify({
-                'status': 'error',
-                'message': '查询时间范围不能超过90天'
-            }), 400
+        return jsonify(
+            {
+                "status": "success",
+                "analysis": analysis_result,
+                "duration_ms": duration_ms,
+                "user_count": total_users,
+                "message_count": total_messages,
+            }
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
+
+@app.route("/api/user-messages", methods=["GET"])
+def get_user_messages():
+    user_id = request.args.get("user_id", "").strip()
+    if not user_id:
+        return jsonify({"status": "error", "message": "缺少user_id参数"}), 400
+
+    try:
+        start_dt, end_dt = _parse_time_range(request.args.get("start_time"), request.args.get("end_time"))
     except ValueError as e:
-        return jsonify({'status': 'error', 'message': f'时间格式错误: {str(e)}'}), 400
+        return jsonify({"status": "error", "message": str(e)}), 400
 
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # 执行复杂的4步CTE查询（支持私聊双向消息）
         query = """
             WITH user_messages AS (
-                -- 步骤1: 获取用户在时间范围内的所有消息
                 SELECT
-                    msgid,
-                    msgtime,
-                    msgtype,
-                    from_user_id,
-                    roomid,
-                    tolist,
-                    content_payload,
-                    raw_data
-                FROM wecom_chat_logs
+                    msgid, msgtime, msgtype, from_user_id, roomid, tolist, content_payload
+                FROM v2.wecom_chat_logs
                 WHERE (
-                    -- 群聊：只查询用户发送的消息
                     (roomid IS NOT NULL AND roomid <> '' AND from_user_id = %s)
-                    OR
-                    -- 私聊：查询双向消息（发送 + 接收）
-                    (
+                    OR (
                         (roomid IS NULL OR roomid = '')
-                        AND (
-                            from_user_id = %s OR tolist[1] = %s
-                        )
+                        AND (from_user_id = %s OR tolist[1] = %s)
                     )
                 )
                 AND msgtime >= %s
                 AND msgtime <= %s
             ),
             grouped_messages AS (
-                -- 步骤2: 按对话分组（群聊用roomid，私聊用tolist[1]）
                 SELECT
                     msgid,
                     msgtime AT TIME ZONE 'Asia/Shanghai' as msgtime_local,
                     msgtype,
                     from_user_id,
                     CASE
-                        WHEN roomid IS NOT NULL AND roomid <> ''
-                        THEN roomid
+                        WHEN roomid IS NOT NULL AND roomid <> '' THEN roomid
                         ELSE 'private:' || COALESCE(
-                            CASE
-                                WHEN from_user_id = %s THEN tolist[1]
-                                ELSE from_user_id
-                            END,
+                            CASE WHEN from_user_id = %s THEN tolist[1] ELSE from_user_id END,
                             'unknown'
                         )
                     END as conversation_key,
                     CASE
-                        WHEN roomid IS NOT NULL AND roomid <> ''
-                        THEN 'group'
+                        WHEN roomid IS NOT NULL AND roomid <> '' THEN 'group'
                         ELSE 'private'
                     END as conversation_type,
-                    CASE
-                        WHEN from_user_id = %s THEN 'sent'
-                        ELSE 'received'
-                    END as message_direction,
+                    CASE WHEN from_user_id = %s THEN 'sent' ELSE 'received' END as message_direction,
                     content_payload
                 FROM user_messages
             ),
             conversations AS (
-                -- 步骤3: 聚合对话统计信息并映射名称
                 SELECT DISTINCT
                     gm.conversation_key,
                     gm.conversation_type,
                     CASE
                         WHEN gm.conversation_type = 'group'
-                        THEN COALESCE(rm.display_name, gm.conversation_key)
+                        THEN COALESCE(rm.business_name, rm.wecom_nickname, gm.conversation_key)
                         ELSE COALESCE(
-                            um.display_name,
+                            um.business_name,
+                            um.wecom_nickname,
                             SUBSTRING(gm.conversation_key FROM 9)
                         )
                     END as conversation_name,
@@ -244,14 +647,13 @@ def get_user_messages():
                     MIN(gm.msgtime_local) OVER (PARTITION BY gm.conversation_key) as first_message_time,
                     MAX(gm.msgtime_local) OVER (PARTITION BY gm.conversation_key) as last_message_time
                 FROM grouped_messages gm
-                LEFT JOIN wecom_id_mappings rm
+                LEFT JOIN v2.wecom_id_mappings rm
                     ON gm.conversation_key = rm.original_id
                     AND rm.id_type = 'room_id'
-                LEFT JOIN wecom_id_mappings um
+                LEFT JOIN v2.wecom_id_mappings um
                     ON SUBSTRING(gm.conversation_key FROM 9) = um.original_id
                     AND um.id_type = 'user_id'
             )
-            -- 步骤4: 聚合消息列表
             SELECT
                 c.conversation_key,
                 c.conversation_type,
@@ -293,152 +695,148 @@ def get_user_messages():
             ORDER BY c.last_message_time DESC
         """
 
-        cur.execute(query, (
-            user_id,      # 群聊发送者过滤
-            user_id,      # 私聊发送者过滤
-            user_id,      # 私聊接收者过滤
-            start_dt,     # 开始时间
-            end_dt,       # 结束时间
-            user_id,      # conversation_key计算
-            user_id       # message_direction计算
-        ))
+        cur.execute(
+            query,
+            (
+                user_id,
+                user_id,
+                user_id,
+                start_dt,
+                end_dt,
+                user_id,
+                user_id,
+            ),
+        )
         results = cur.fetchall()
 
         cur.close()
         conn.close()
 
-        # 转换为JSON格式
         conversations = []
         for row in results:
-            conversations.append({
-                'conversation_key': row['conversation_key'],
-                'conversation_type': row['conversation_type'],
-                'conversation_name': row['conversation_name'],
-                'message_count': row['message_count'],
-                'first_message_time': row['first_message_time'].isoformat() if row['first_message_time'] else None,
-                'last_message_time': row['last_message_time'].isoformat() if row['last_message_time'] else None,
-                'messages': row['messages']
-            })
+            conversations.append(
+                {
+                    "conversation_key": row["conversation_key"],
+                    "conversation_type": row["conversation_type"],
+                    "conversation_name": row["conversation_name"],
+                    "message_count": row["message_count"],
+                    "first_message_time": row["first_message_time"].isoformat()
+                    if row["first_message_time"]
+                    else None,
+                    "last_message_time": row["last_message_time"].isoformat() if row["last_message_time"] else None,
+                    "messages": row["messages"],
+                }
+            )
 
-        return jsonify({
-            'status': 'success',
-            'user_id': user_id,
-            'start_time': start_dt.isoformat(),
-            'end_time': end_dt.isoformat(),
-            'conversation_count': len(conversations),
-            'conversations': conversations
-        })
+        return jsonify(
+            {
+                "status": "success",
+                "user_id": user_id,
+                "start_time": start_dt.isoformat(),
+                "end_time": end_dt.isoformat(),
+                "conversation_count": len(conversations),
+                "conversations": conversations,
+            }
+        )
 
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/')
-def index():
-    """提供HTML界面"""
-    return send_file('user_messages.html')
 
-@app.after_request
-def after_request(response):
-    """添加CORS头"""
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE')
-    return response
-
-@app.route('/api/update-student-info', methods=['POST'])
+@app.route("/api/update-student-info", methods=["POST"])
 def update_student_info():
-    """
-    更新家长关联的学员信息
-    请求体:
-      {
-        "user_id": "wmqDzZEw...",
-        "student_name": "张小明",
-        "student_english_name": "Tom",
-        "student_class_room_id": "wrqDzZEw..."
-      }
-    """
     try:
-        data = request.json
-        user_id = data.get('user_id', '').strip()
-        student_name = data.get('student_name', '').strip()
-        student_english_name = data.get('student_english_name', '').strip()
-        student_class_room_id = data.get('student_class_room_id', '').strip()
+        data = request.json or {}
+        user_id = data.get("user_id", "").strip()
+        student_name = data.get("student_name", "").strip()
+        student_english_name = data.get("student_english_name", "").strip()
+        student_class_room_id = data.get("student_class_room_id", "").strip()
 
         if not user_id:
-            return jsonify({'status': 'error', 'message': '缺少user_id参数'}), 400
+            return jsonify({"status": "error", "message": "缺少user_id参数"}), 400
 
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # 更新学员信息
-        update_query = """
-        UPDATE wecom_id_mappings
-        SET student_name = %s,
-            student_english_name = %s,
-            student_class_room_id = %s,
-            updated_at = NOW()
-        WHERE id_type = 'user_id'
-          AND original_id = %s
-        """
+        cur.execute(
+            "SELECT id FROM v2.wecom_id_mappings WHERE id_type = 'user_id' AND original_id = %s",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            cur.close()
+            conn.close()
+            return jsonify({"status": "error", "message": "用户不存在"}), 404
 
-        cur.execute(update_query, (
-            student_name if student_name else None,
-            student_english_name if student_english_name else None,
-            student_class_room_id if student_class_room_id else None,
-            user_id
-        ))
+        wecom_id = row[0]
+
+        if student_name:
+            cur.execute(
+                """
+                SELECT id FROM v2.students
+                WHERE name = %s
+                  AND (english_name IS NOT DISTINCT FROM %s)
+                  AND (class_room_id IS NOT DISTINCT FROM %s)
+                """,
+                (student_name, student_english_name or None, student_class_room_id or None),
+            )
+            student_row = cur.fetchone()
+            if student_row:
+                student_id = student_row[0]
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO v2.students (name, english_name, class_room_id, created_at, updated_at)
+                    VALUES (%s, %s, %s, NOW(), NOW())
+                    RETURNING id
+                    """,
+                    (student_name, student_english_name or None, student_class_room_id or None),
+                )
+                student_id = cur.fetchone()[0]
+
+            cur.execute("DELETE FROM v2.wecom_user_student_rel WHERE wecom_id = %s", (wecom_id,))
+            cur.execute(
+                """
+                INSERT INTO v2.wecom_user_student_rel
+                    (wecom_id, student_id, relation, is_primary, created_at)
+                VALUES (%s, %s, 'other', TRUE, NOW())
+                """,
+                (wecom_id, student_id),
+            )
+        else:
+            cur.execute("DELETE FROM v2.wecom_user_student_rel WHERE wecom_id = %s", (wecom_id,))
 
         conn.commit()
         cur.close()
         conn.close()
 
-        return jsonify({
-            'status': 'success',
-            'message': '学员信息更新成功'
-        })
-
+        return jsonify({"status": "success", "message": "学员信息更新成功"})
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': f'服务器错误: {str(e)}'
-        }), 500
+        return jsonify({"status": "error", "message": f"服务器错误: {str(e)}"}), 500
 
-@app.route('/api/summarize-messages', methods=['POST'])
+
+@app.route("/api/summarize-messages", methods=["POST"])
 def summarize_messages():
-    """
-    AI智能总结用户消息（使用Coze API）
-    """
     if not COZE_TOKEN or not COZE_BOT_ID:
-        return jsonify({
-            'status': 'error',
-            'message': 'Coze API未配置，请检查COZE_TOKEN和COZE_BOT_ID'
-        }), 500
+        return jsonify({"status": "error", "message": "Coze API未配置"}), 500
 
     try:
-        data = request.json
-        user_id = data.get('user_id', '').strip()
-        user_name = data.get('user_name', '未知用户')
-        start_time_str = data.get('start_time', '')
-        end_time_str = data.get('end_time', '')
+        data = request.json or {}
+        user_id = data.get("user_id", "").strip()
+        user_name = data.get("user_name", "未知用户")
+        start_time_str = data.get("start_time", "")
+        end_time_str = data.get("end_time", "")
+        mode = data.get("mode", "parent")
 
         if not user_id:
-            return jsonify({'status': 'error', 'message': '缺少user_id参数'}), 400
+            return jsonify({"status": "error", "message": "缺少user_id参数"}), 400
 
-        # 解析时间参数
         try:
-            if end_time_str:
-                end_dt = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
-            else:
-                end_dt = datetime.now()
-
-            if start_time_str:
-                start_dt = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
-            else:
-                start_dt = end_dt - timedelta(days=30)
+            start_dt, end_dt = _parse_time_range(start_time_str, end_time_str)
         except ValueError as e:
-            return jsonify({'status': 'error', 'message': f'时间格式错误: {str(e)}'}), 400
+            return jsonify({"status": "error", "message": f"时间格式错误: {str(e)}"}), 400
 
-        # 获取用户消息（复用现有查询逻辑）
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -446,7 +844,7 @@ def summarize_messages():
             WITH user_messages AS (
                 SELECT
                     msgid, msgtime, msgtype, from_user_id, roomid, tolist, content_payload
-                FROM wecom_chat_logs
+                FROM v2.wecom_chat_logs
                 WHERE (
                     (roomid IS NOT NULL AND roomid <> '' AND from_user_id = %s)
                     OR ((roomid IS NULL OR roomid = '') AND (from_user_id = %s OR tolist[1] = %s))
@@ -477,12 +875,16 @@ def summarize_messages():
                     gm.conversation_key, gm.conversation_type,
                     CASE
                         WHEN gm.conversation_type = 'group'
-                        THEN COALESCE(rm.display_name, gm.conversation_key)
-                        ELSE COALESCE(um.display_name, SUBSTRING(gm.conversation_key FROM 9))
+                        THEN COALESCE(rm.business_name, rm.wecom_nickname, gm.conversation_key)
+                        ELSE COALESCE(
+                            um.business_name,
+                            um.wecom_nickname,
+                            SUBSTRING(gm.conversation_key FROM 9)
+                        )
                     END as conversation_name
                 FROM grouped_messages gm
-                LEFT JOIN wecom_id_mappings rm ON gm.conversation_key = rm.original_id AND rm.id_type = 'room_id'
-                LEFT JOIN wecom_id_mappings um ON SUBSTRING(gm.conversation_key FROM 9) = um.original_id AND um.id_type = 'user_id'
+                LEFT JOIN v2.wecom_id_mappings rm ON gm.conversation_key = rm.original_id AND rm.id_type = 'room_id'
+                LEFT JOIN v2.wecom_id_mappings um ON SUBSTRING(gm.conversation_key FROM 9) = um.original_id AND um.id_type = 'user_id'
             )
             SELECT
                 c.conversation_key, c.conversation_type, c.conversation_name,
@@ -516,161 +918,126 @@ def summarize_messages():
         conn.close()
 
         if not conversations:
-            return jsonify({'status': 'error', 'message': '该时间范围内没有消息数据'}), 400
+            return jsonify({"status": "error", "message": "该时间范围内没有消息数据"}), 400
 
-        # 格式化消息为AI格式
         formatted_messages = _format_messages_for_coze(conversations, user_name, start_dt, end_dt)
+        bot_id = COZE_TEACHER_BOT_ID if mode == "teacher" and COZE_TEACHER_BOT_ID else COZE_BOT_ID
+        summary_text = _call_coze_api(formatted_messages, user_id, bot_id)
 
-        # 调用 Coze API
-        try:
-            summary_text = _call_coze_api(formatted_messages, user_id)
-        except Exception as e:
-            return jsonify({'status': 'error', 'message': f'AI API调用失败: {str(e)}'}), 500
+        total_messages = sum(conv["message_count"] for conv in conversations)
 
-        total_messages = sum(conv['message_count'] for conv in conversations)
-
-        return jsonify({
-            'status': 'success',
-            'summary': summary_text,
-            'message_count': total_messages,
-            'conversation_count': len(conversations)
-        })
-
+        return jsonify(
+            {
+                "status": "success",
+                "summary": summary_text,
+                "message_count": total_messages,
+                "conversation_count": len(conversations),
+            }
+        )
     except Exception as e:
-        return jsonify({'status': 'error', 'message': f'服务器错误: {str(e)}'}), 500
+        return jsonify({"status": "error", "message": f"服务器错误: {str(e)}"}), 500
+
 
 def _format_messages_for_coze(conversations, user_name, start_dt, end_dt):
-    """
-    格式化消息为Coze可理解的文本（简化版）
-
-    重要原则：Coze Bot 已在平台配置了角色和提示词，
-    代码只负责传递聊天记录数据，不构建复杂 Prompt
-    """
     lines = []
-
-    # 只添加基本的时间和用户信息
     lines.append(f"{user_name} ({start_dt.strftime('%Y-%m-%d')} ~ {end_dt.strftime('%Y-%m-%d')})")
     lines.append("")
 
     for conv in conversations:
-        conv_type_text = "群聊" if conv['conversation_type'] == 'group' else "私聊"
+        conv_type_text = "群聊" if conv["conversation_type"] == "group" else "私聊"
         lines.append(f"【{conv_type_text}: {conv['conversation_name']}】({conv['message_count']}条消息)")
         lines.append("")
 
-        messages = conv['messages'][:100] if len(conv['messages']) > 100 else conv['messages']
+        messages = conv["messages"][:100] if len(conv["messages"]) > 100 else conv["messages"]
 
         for msg in messages:
-            direction_symbol = "我" if msg['direction'] == 'sent' else "对方"
-            time_str = msg['msgtime'].strftime('%m-%d %H:%M') if isinstance(msg['msgtime'], datetime) else str(msg['msgtime'])[:16]
-            content = msg['content'][:200] if msg['content'] else ''
+            direction_symbol = "我" if msg["direction"] == "sent" else "对方"
+            time_str = (
+                msg["msgtime"].strftime("%m-%d %H:%M")
+                if isinstance(msg["msgtime"], datetime)
+                else str(msg["msgtime"])[:16]
+            )
+            content = msg["content"][:200] if msg["content"] else ""
             lines.append(f"  {time_str}  {direction_symbol}  {content}")
 
-        if len(conv['messages']) > 100:
+        if len(conv["messages"]) > 100:
             lines.append(f"  ... (省略{len(conv['messages']) - 100}条消息)")
         lines.append("")
 
     return "\n".join(lines)
 
-def _call_coze_api(formatted_messages, user_id):
-    """调用 Coze API 进行总结（参考 parent_analyzer.py）"""
-    try:
-        headers = {
-            "Authorization": f"Bearer {COZE_TOKEN}",
-            "Content-Type": "application/json"
-        }
 
-        # 构建 Coze API 请求体
-        payload = {
-            "bot_id": COZE_BOT_ID,
-            "user_id": f"user_messages_{user_id}_{int(time.time())}",
-            "stream": True,
-            "auto_save_history": True,
-            "additional_messages": [
-                {
-                    "role": "user",
-                    "content": formatted_messages,
-                    "content_type": "text"
-                }
-            ]
-        }
+def _call_coze_api(formatted_messages, user_id, bot_id):
+    headers = {"Authorization": f"Bearer {COZE_TOKEN}", "Content-Type": "application/json"}
+    payload = {
+        "bot_id": bot_id,
+        "user_id": f"user_messages_{user_id}_{int(time.time())}",
+        "stream": True,
+        "auto_save_history": True,
+        "additional_messages": [
+            {"role": "user", "content": formatted_messages, "content_type": "text"}
+        ],
+    }
 
-        print(f"[COZE] 发送请求到: {COZE_API_ENDPOINT}", file=sys.stderr)
-        print(f"[COZE] Bot ID: {COZE_BOT_ID}", file=sys.stderr)
+    response = requests.post(
+        COZE_API_ENDPOINT, headers=headers, json=payload, timeout=120, stream=True
+    )
+    response.raise_for_status()
 
-        start_time = time.time()
+    full_text = ""
+    current_event = None
 
-        response = requests.post(
-            COZE_API_ENDPOINT,
-            headers=headers,
-            json=payload,
-            timeout=120,
-            stream=True
-        )
-        response.raise_for_status()
+    for line in response.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8")
 
-        # 处理流式返回（Coze API event-stream 格式）
-        full_text = ""
-        current_event = None
+        if line_str.startswith("event:"):
+            current_event = line_str[6:].strip()
+            continue
 
-        for line in response.iter_lines():
-            if not line:
+        if line_str.startswith("data:"):
+            data_str = line_str[5:].strip()
+            if data_str == '"[DONE]"' or data_str == "[DONE]":
+                break
+            try:
+                data = json.loads(data_str)
+                if data.get("type") == "answer":
+                    content = data.get("content", "")
+                    if current_event == "conversation.message.delta":
+                        full_text += content
+                    elif current_event == "conversation.message.completed":
+                        full_text = content
+            except json.JSONDecodeError:
                 continue
 
-            line_str = line.decode('utf-8')
+    if not full_text:
+        raise Exception("Coze API 返回了空的总结")
 
-            # 处理 event 行
-            if line_str.startswith('event:'):
-                current_event = line_str[6:].strip()
-                continue
+    return full_text
 
-            # 处理 data 行
-            if line_str.startswith('data:'):
-                data_str = line_str[5:].strip()
-                if data_str == '"[DONE]"' or data_str == '[DONE]':
-                    break
 
-                try:
-                    data = json.loads(data_str)
+@app.route("/")
+def index():
+    return send_file(os.path.join(os.path.dirname(__file__), "user_messages.html"))
 
-                    # 提取 answer 类型的内容
-                    if data.get('type') == 'answer':
-                        content = data.get('content', '')
 
-                        # delta 事件：增量内容
-                        if current_event == 'conversation.message.delta':
-                            full_text += content
+@app.after_request
+def after_request(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+    response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
+    return response
 
-                        # completed 事件：完整内容（使用这个作为最终结果）
-                        elif current_event == 'conversation.message.completed':
-                            full_text = content
 
-                except json.JSONDecodeError:
-                    continue
-
-        duration_ms = int((time.time() - start_time) * 1000)
-        print(f"[COZE] API 调用完成，耗时 {duration_ms} ms", file=sys.stderr)
-        print(f"[COZE] 成功获取总结，长度: {len(full_text)}", file=sys.stderr)
-
-        if not full_text:
-            raise Exception("Coze API 返回了空的总结")
-
-        return full_text
-
-    except requests.Timeout as e:
-        raise Exception(f"Coze API请求超时: {str(e)}")
-    except requests.RequestException as e:
-        raise Exception(f"Coze API网络错误: {str(e)}")
-    except Exception as e:
-        raise Exception(f"Coze API错误: {str(e)}")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("=" * 60)
-    print("用户消息查询系统")
+    print("用户消息查询系统 v2")
     print("=" * 60)
     print(f"  数据库: {DB_CONFIG['database']}")
     print(f"  用户: {DB_CONFIG['user']}")
-    print("  连接方式: Unix Socket (Peer Authentication)")
     print("=" * 60)
-    print("访问地址: http://localhost:5005")
+    port = int(os.getenv("PORT", "5006"))
+    print(f"访问地址: http://localhost:{port}")
     print("=" * 60)
-    app.run(debug=True, port=5005, host='0.0.0.0')
+    app.run(debug=True, port=port, host="0.0.0.0")
