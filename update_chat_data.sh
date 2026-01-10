@@ -76,7 +76,7 @@ echo ""
 echo "步骤 2/2: 同步数据到 v2.wecom_chat_logs..."
 echo "----------------------------------------"
 
-cat "$SYNC_SCRIPT" | sudo -u postgres psql -d "$DB_NAME"
+cat "$SYNC_SCRIPT" | sudo -u postgres psql -d "$DB_NAME" 2>&1
 
 if [ $? -ne 0 ]; then
     echo "错误: 数据同步失败"

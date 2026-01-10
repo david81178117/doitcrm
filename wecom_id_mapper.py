@@ -332,8 +332,15 @@ def get_mappings(id_type):
                     m.notes,
                     m.is_mapped,
                     m.created_at,
-                    m.updated_at
+                    m.updated_at,
+                    c.id AS linked_class_id,
+                    c.name AS linked_class_name,
+                    l.name AS linked_level_name,
+                    sec.name AS linked_section_name
                 FROM v2.wecom_id_mappings m
+                LEFT JOIN v2.classes c ON c.room_id = m.original_id
+                LEFT JOIN v2.levels l ON l.id = c.level_id
+                LEFT JOIN v2.sections sec ON sec.id = l.section_id
                 WHERE {where_sql}
                 ORDER BY
                     CASE WHEN m.business_name IS NULL OR m.business_name = '' THEN 1 ELSE 0 END,
@@ -687,6 +694,99 @@ def get_user_groups(user_id):
         return jsonify(
             {"status": "success", "user_id": user_id, "group_count": len(groups), "groups": groups}
         )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/classes", methods=["GET"])
+def get_classes():
+    """获取所有班级列表，用于群组关联"""
+    keyword = (request.args.get("keyword") or "").strip()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        params = []
+        where_clause = "c.is_active = TRUE"
+        if keyword:
+            where_clause += " AND c.name ILIKE %s"
+            params.append(f"%{keyword}%")
+
+        cur.execute(
+            f"""
+            SELECT
+                c.id,
+                c.name,
+                c.room_id,
+                l.name AS level_name,
+                sec.name AS section_name
+            FROM v2.classes c
+            LEFT JOIN v2.levels l ON l.id = c.level_id
+            LEFT JOIN v2.sections sec ON sec.id = l.section_id
+            WHERE {where_clause}
+            ORDER BY sec.sort_order, l.sort_order, c.name
+            """,
+            params,
+        )
+
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return jsonify({"status": "success", "count": len(results), "classes": results})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/classes/<int:class_id>/room", methods=["PUT"])
+def update_class_room(class_id):
+    """更新班级关联的群ID"""
+    data = request.json or {}
+    room_id = (data.get("room_id") or "").strip()
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # 先检查班级是否存在
+        cur.execute("SELECT id, name FROM v2.classes WHERE id = %s", (class_id,))
+        cls = cur.fetchone()
+        if not cls:
+            cur.close()
+            conn.close()
+            return jsonify({"status": "error", "message": "班级不存在"}), 404
+
+        # 如果要清除关联
+        if not room_id:
+            cur.execute(
+                "UPDATE v2.classes SET room_id = NULL, updated_at = NOW() WHERE id = %s",
+                (class_id,),
+            )
+        else:
+            # 检查该群是否已被其他班级关联
+            cur.execute(
+                "SELECT id, name FROM v2.classes WHERE room_id = %s AND id != %s",
+                (room_id, class_id),
+            )
+            other = cur.fetchone()
+            if other:
+                cur.close()
+                conn.close()
+                return jsonify({
+                    "status": "error",
+                    "message": f"该群已被班级 [{other[1]}] 关联"
+                }), 400
+
+            cur.execute(
+                "UPDATE v2.classes SET room_id = %s, updated_at = NOW() WHERE id = %s",
+                (room_id, class_id),
+            )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"status": "success", "message": "关联更新成功"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

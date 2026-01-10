@@ -246,32 +246,54 @@
             background: #2f855a;
         }
 
-        .student-picker {
+        .student-picker, .class-picker {
             position: relative;
         }
 
-        .student-dropdown {
+        .student-dropdown, .class-dropdown {
             position: absolute;
-            top: 34px;
             left: 0;
             right: 0;
             background: #ffffff;
             border: 1px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-            max-height: 220px;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+            max-height: 280px;
             overflow-y: auto;
-            z-index: 30;
+            z-index: 100;
         }
 
-        .student-option {
+        .student-dropdown.drop-down, .class-dropdown.drop-down {
+            top: 34px;
+            bottom: auto;
+        }
+
+        .student-dropdown.drop-up, .class-dropdown.drop-up {
+            bottom: 34px;
+            top: auto;
+        }
+
+        .student-option, .class-option {
             padding: 6px 8px;
             cursor: pointer;
             font-size: 12px;
         }
 
-        .student-option:hover {
+        .student-option:hover, .class-option:hover {
             background: #f2f1ed;
+        }
+
+        .class-option.has-room {
+            color: #9ca3af;
+        }
+
+        .class-option .linked-badge {
+            font-size: 10px;
+            background: #fef3c7;
+            color: #d97706;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 4px;
         }
 
         .hidden {
@@ -501,11 +523,12 @@
         let html = '<table><thead><tr>';
         if (currentTab === 'room_id') {
             html += `
-                <th style="width: 18%;">roomid</th>
-                <th style="width: 20%;">微信昵称</th>
-                <th style="width: 30%;">业务群名</th>
-                <th style="width: 12%;">状态</th>
-                <th style="width: 20%;">操作</th>
+                <th style="width: 16%;">roomid</th>
+                <th style="width: 14%;">微信昵称</th>
+                <th style="width: 20%;">业务群名</th>
+                <th style="width: 22%;">关联班级</th>
+                <th style="width: 10%;">状态</th>
+                <th style="width: 18%;">操作</th>
             `;
         } else {
             html += `
@@ -525,6 +548,9 @@
         data.forEach(item => {
             const rowClass = item.business_name ? '' : 'unmapped';
             if (currentTab === 'room_id') {
+                const linkedClassId = item.linked_class_id || '';
+                const linkedClassName = item.linked_class_name || '';
+                const linkedInfo = item.linked_section_name ? `${item.linked_section_name} ${item.linked_level_name} - ${linkedClassName}` : linkedClassName;
                 html += `
                     <tr class="${rowClass}" data-id="${item.id}" data-original-id="${item.original_id}">
                         <td title="${item.original_id}">${item.original_id}</td>
@@ -532,8 +558,17 @@
                         <td>
                             <input class="input" data-field="business_name" value="${item.business_name || ''}" placeholder="请输入业务群名">
                         </td>
+                        <td>
+                            <div class="class-picker">
+                                <input class="input class-search" data-field="class_name" value="${linkedInfo}" placeholder="搜索班级名称" data-class-id="${linkedClassId}">
+                                <div class="class-dropdown hidden"></div>
+                            </div>
+                        </td>
                         <td>${item.business_name ? '已映射' : '未映射'}</td>
-                        <td><button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button></td>
+                        <td>
+                            <button class="save-btn" onclick="saveMapping('${item.original_id}')">保存</button>
+                            ${linkedClassId ? `<button class="save-btn" style="background:#d97706;margin-left:4px;" onclick="unlinkClass(${linkedClassId}, '${item.original_id}')">解除</button>` : ''}
+                        </td>
                     </tr>
                 `;
             } else {
@@ -575,6 +610,135 @@
         html += '</tbody></table>';
         container.innerHTML = html;
         attachStudentPickers();
+        if (currentTab === 'room_id') {
+            attachClassPickers();
+        }
+    }
+
+    // 班级选择器
+    function attachClassPickers() {
+        document.querySelectorAll('.class-search').forEach(input => {
+            let timer = null;
+            const dropdown = input.parentElement.querySelector('.class-dropdown');
+
+            function hideDropdown() {
+                dropdown.classList.add('hidden');
+                dropdown.classList.remove('drop-up', 'drop-down');
+                dropdown.innerHTML = '';
+            }
+
+            function positionDropdown() {
+                const rect = input.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+
+                dropdown.classList.remove('drop-up', 'drop-down');
+                if (spaceBelow < 300 && spaceAbove > spaceBelow) {
+                    dropdown.classList.add('drop-up');
+                } else {
+                    dropdown.classList.add('drop-down');
+                }
+            }
+
+            async function loadClasses(keyword) {
+                try {
+                    const url = keyword ? `${API_BASE}/api/classes?keyword=${encodeURIComponent(keyword)}` : `${API_BASE}/api/classes`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        hideDropdown();
+                        return;
+                    }
+                    dropdown.innerHTML = data.classes.map(cls => {
+                        const label = `${cls.section_name || ''} ${cls.level_name || ''} - ${cls.name}`;
+                        const hasRoom = cls.room_id ? 'has-room' : '';
+                        const badge = cls.room_id ? '<span class="linked-badge">已关联</span>' : '';
+                        return `<div class="class-option ${hasRoom}" data-id="${cls.id}" data-name="${cls.name}" data-label="${label}" data-room="${cls.room_id || ''}">${label}${badge}</div>`;
+                    }).join('');
+                    if (!data.classes.length) {
+                        dropdown.innerHTML = '<div class="class-option">未找到班级</div>';
+                    }
+                    positionDropdown();
+                    dropdown.classList.remove('hidden');
+                } catch (error) {
+                    hideDropdown();
+                }
+            }
+
+            input.addEventListener('focus', () => {
+                loadClasses(input.value.trim());
+            });
+
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                const keyword = input.value.trim();
+                timer = setTimeout(() => loadClasses(keyword), 250);
+            });
+
+            dropdown.addEventListener('click', async (event) => {
+                const option = event.target.closest('.class-option');
+                if (!option || !option.dataset.id) return;
+
+                const row = input.closest('tr');
+                const roomId = row.dataset.originalId;
+                const classId = option.dataset.id;
+                const existingRoom = option.dataset.room;
+
+                // 如果该班级已关联其他群，提示确认
+                if (existingRoom && existingRoom !== roomId) {
+                    if (!confirm(`该班级已关联其他群，是否更换为当前群？`)) {
+                        hideDropdown();
+                        return;
+                    }
+                }
+
+                // 调用API关联
+                try {
+                    const response = await fetch(`${API_BASE}/api/classes/${classId}/room`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ room_id: roomId })
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        input.value = option.dataset.label;
+                        input.dataset.classId = classId;
+                        showToast('班级关联成功');
+                        loadMappings(); // 刷新列表
+                    } else {
+                        showToast(result.message || '关联失败', true);
+                    }
+                } catch (error) {
+                    showToast('关联失败', true);
+                }
+                hideDropdown();
+            });
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => hideDropdown(), 200);
+            });
+        });
+    }
+
+    // 解除班级关联
+    async function unlinkClass(classId, roomId) {
+        if (!confirm('确定解除该群与班级的关联？')) return;
+        try {
+            const response = await fetch(`${API_BASE}/api/classes/${classId}/room`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room_id: '' })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                showToast('已解除关联');
+                loadMappings();
+            } else {
+                showToast(result.message || '解除失败', true);
+            }
+        } catch (error) {
+            showToast('解除失败', true);
+        }
     }
 
     function selectRole(btn, role) {

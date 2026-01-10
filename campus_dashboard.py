@@ -36,6 +36,12 @@ def index():
     return send_file("campus_dashboard.html")
 
 
+@app.route("/user_messages.html", methods=["GET"])
+def user_messages():
+    """返回用户消息查询引导页面"""
+    return send_file("user_messages_guide.html")
+
+
 @app.route("/api/overview-stats", methods=["GET"])
 def get_overview_stats():
     """

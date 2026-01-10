@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群消息查看系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .header-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .header-filters input {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 160px;
+        }
+
+        .header-filters button {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .header-filters button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        .filter-toggle input {
+            width: auto;
+        }
+
+        /* 统计卡片区 */
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        /* 左侧树形导航 */
+        .sidebar {
+            width: 320px;
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto;
+            max-height: calc(100vh - 300px);
+        }
+
+        .sidebar-header {
+            padding: 15px 20px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .tree-section {
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .tree-section-header {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #374151;
+            background: #fafafa;
+            transition: background 0.2s;
+        }
+
+        .tree-section-header:hover {
+            background: #f3f4f6;
+        }
+
+        .tree-section-header .icon {
+            transition: transform 0.2s;
+        }
+
+        .tree-section-header.expanded .icon {
+            transform: rotate(90deg);
+        }
+
+        .tree-level {
+            display: none;
+            padding-left: 15px;
+        }
+
+        .tree-level.expanded {
+            display: block;
+        }
+
+        .tree-level-header {
+            padding: 10px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            transition: background 0.2s;
+        }
+
+        .tree-level-header:hover {
+            background: #f9fafb;
+        }
+
+        .tree-level-header.expanded .icon {
+            transform: rotate(90deg);
+        }
+
+        .tree-classes {
+            display: none;
+            padding-left: 15px;
+        }
+
+        .tree-classes.expanded {
+            display: block;
+        }
+
+        .tree-room {
+            padding: 8px 20px;
+            cursor: pointer;
+            color: #374151;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .tree-room:hover {
+            background: #f3f4f6;
+        }
+
+        .tree-room.selected {
+            background: #e0e7ff;
+            border-left-color: #667eea;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .other-rooms-section {
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .other-rooms-header {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #9ca3af;
+            background: #f9fafb;
+            transition: background 0.2s;
+        }
+
+        .other-rooms-header:hover {
+            background: #f3f4f6;
+        }
+
+        .other-rooms-list {
+            display: none;
+        }
+
+        .other-rooms-list.expanded {
+            display: block;
+        }
+
+        /* 右侧内容区 */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .room-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .room-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .room-meta .badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: #e0e7ff;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .room-stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .room-stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .room-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .room-stat-label {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        /* 消息列表 */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .message-item {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #f9fafb;
+            transition: background 0.2s;
+        }
+
+        .message-item:hover {
+            background: #f3f4f6;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .sender-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .sender-role {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .sender-role.parent {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .sender-role.teacher {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .sender-role.head_teacher {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .sender-role.advisor {
+            background: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .sender-role.unmapped-parent {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-left: auto;
+        }
+
+        .message-content {
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .message-type {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+
+        /* 分页 */
+        .pagination {
+            padding: 20px 30px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        /* 成员列表 */
+        .members-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .members-section h4 {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+
+        .members-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .member-tag {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: white;
+            border-radius: 4px;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+
+        .member-tag .count {
+            color: #667eea;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-filters {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <div>
+                <h1>群消息查看系统</h1>
+                <p>按段/阶/班级查看群消息记录</p>
+            </div>
+            <div class="header-filters">
+                <input type="date" id="start-date" title="开始日期">
+                <input type="date" id="end-date" title="结束日期">
+                <label class="filter-toggle">
+                    <input type="checkbox" id="only-unmapped">
+                    只看未映射家长
+                </label>
+                <button onclick="applyDateFilter()">筛选</button>
+            </div>
+        </div>
+
+        <!-- 顶部统计卡片 -->
+        <div class="stats-cards" id="stats-cards">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 左侧树形导航 -->
+            <div class="sidebar">
+                <div class="sidebar-header">群组列表</div>
+                <div id="room-tree">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 右侧内容区 -->
+            <div class="content-area">
+                <div class="content-header" id="content-header" style="display: none;">
+                    <div class="room-title" id="room-title">-</div>
+                    <div class="room-meta" id="room-meta"></div>
+                    <div class="room-stats" id="room-stats"></div>
+                </div>
+
+                <div class="messages-container" id="messages-container">
+                    <div class="empty-state">
+                        <div class="icon">&#128172;</div>
+                        <p>请从左侧选择一个群组查看消息</p>
+                    </div>
+                </div>
+
+                <div class="pagination" id="pagination" style="display: none;">
+                    <button id="prev-btn" onclick="prevPage()" disabled>上一页</button>
+                    <span class="page-info" id="page-info">第 1 页</span>
+                    <button id="next-btn" onclick="nextPage()" disabled>下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let roomTree = null;
+        let selectedRoomId = null;
+        let currentPage = 1;
+        let totalPages = 1;
+        let pageSize = 50;
+
+        // 页面加载时初始化
+        window.onload = () => {
+            // 设置默认日期范围（最近30天）
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            document.getElementById('end-date').value = formatDateForInput(today);
+            document.getElementById('start-date').value = formatDateForInput(thirtyDaysAgo);
+
+            loadRoomStats();
+            loadRoomTree();
+        };
+
+        // 格式化日期为input[date]格式
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // 加载统计数据
+        async function loadRoomStats() {
+            try {
+                const response = await fetch('/api/room-stats');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    renderStatsCards(result.stats);
+                } else {
+                    renderStatsCards({});
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+                renderStatsCards({});
+            }
+        }
+
+        // 渲染统计卡片
+        function renderStatsCards(stats) {
+            const container = document.getElementById('stats-cards');
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="label">总群数</div>
+                    <div class="value">${stats.total_rooms || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">班级群</div>
+                    <div class="value">${stats.class_rooms_count || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">其他群</div>
+                    <div class="value">${stats.other_rooms_count || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">今日消息</div>
+                    <div class="value">${stats.today_messages || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">本周消息</div>
+                    <div class="value">${stats.week_messages || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">今日活跃群</div>
+                    <div class="value">${stats.active_rooms_today || 0}</div>
+                </div>
+            `;
+        }
+
+        // 加载树形结构
+        async function loadRoomTree() {
+            try {
+                const response = await fetch('/api/room-tree');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    roomTree = result.tree;
+                    renderTree(roomTree);
+                } else {
+                    document.getElementById('room-tree').innerHTML = '<div class="empty-state" style="padding: 30px; font-size: 14px;">加载失败，请检查数据库连接</div>';
+                }
+            } catch (error) {
+                console.error('加载群组树失败:', error);
+                document.getElementById('room-tree').innerHTML = '<div class="empty-state" style="padding: 30px; font-size: 14px;">加载失败，请检查服务状态</div>';
+            }
+        }
+
+        // 渲染树形结构
+        function renderTree(tree) {
+            const container = document.getElementById('room-tree');
+            let html = '';
+
+            // 渲染班级群（按段-阶-班级层级）
+            if (tree.class_rooms && tree.class_rooms.length > 0) {
+                tree.class_rooms.forEach((section, sIdx) => {
+                    html += `
+                        <div class="tree-section">
+                            <div class="tree-section-header" onclick="toggleSection(${sIdx})">
+                                <span class="icon">&#9654;</span>
+                                <span>${section.section_name}</span>
+                            </div>
+                            <div class="tree-level" id="section-${sIdx}">
+                    `;
+
+                    if (section.levels) {
+                        section.levels.forEach((level, lIdx) => {
+                            html += `
+                                <div class="tree-level-header" onclick="toggleLevel(${sIdx}, ${lIdx})">
+                                    <span class="icon">&#9654;</span>
+                                    <span>${level.level_name}</span>
+                                </div>
+                                <div class="tree-classes" id="level-${sIdx}-${lIdx}">
+                            `;
+
+                            if (level.classes) {
+                                level.classes.forEach(cls => {
+                                    if (cls.room_id) {
+                                        html += `
+                                            <div class="tree-room" data-room-id="${cls.room_id}" onclick="selectRoom('${cls.room_id}')">
+                                                ${cls.class_name || cls.room_name || cls.room_id}
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            }
+
+                            html += '</div>';
+                        });
+                    }
+
+                    html += '</div></div>';
+                });
+            }
+
+            // 渲染其他群
+            if (tree.other_rooms && tree.other_rooms.length > 0) {
+                html += `
+                    <div class="other-rooms-section">
+                        <div class="other-rooms-header" onclick="toggleOtherRooms()">
+                            <span class="icon" id="other-rooms-icon">&#9654;</span>
+                            <span>其他群 (${tree.other_rooms.length})</span>
+                        </div>
+                        <div class="other-rooms-list" id="other-rooms-list">
+                `;
+
+                tree.other_rooms.forEach(room => {
+                    html += `
+                        <div class="tree-room" data-room-id="${room.room_id}" onclick="selectRoom('${room.room_id}')">
+                            ${room.room_name || room.room_id}
+                            ${room.notes ? `<br><small style="color: #9ca3af;">${room.notes}</small>` : ''}
+                        </div>
+                    `;
+                });
+
+                html += '</div></div>';
+            }
+
+            if (!html) {
+                html = '<div class="empty-state">暂无群组数据</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 展开/折叠段
+        function toggleSection(sIdx) {
+            const section = document.getElementById(`section-${sIdx}`);
+            const header = section.previousElementSibling;
+
+            section.classList.toggle('expanded');
+            header.classList.toggle('expanded');
+        }
+
+        // 展开/折叠阶
+        function toggleLevel(sIdx, lIdx) {
+            const level = document.getElementById(`level-${sIdx}-${lIdx}`);
+            const header = level.previousElementSibling;
+
+            level.classList.toggle('expanded');
+            header.classList.toggle('expanded');
+        }
+
+        // 展开/折叠其他群
+        function toggleOtherRooms() {
+            const list = document.getElementById('other-rooms-list');
+            const icon = document.getElementById('other-rooms-icon');
+
+            list.classList.toggle('expanded');
+
+            if (list.classList.contains('expanded')) {
+                icon.innerHTML = '&#9660;';
+            } else {
+                icon.innerHTML = '&#9654;';
+            }
+        }
+
+        // 选择群
+        function selectRoom(roomId) {
+            selectedRoomId = roomId;
+            currentPage = 1;
+
+            // 更新选中状态
+            document.querySelectorAll('.tree-room').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.roomId === roomId) {
+                    el.classList.add('selected');
+                }
+            });
+
+            // 加载群详情和消息
+            loadRoomDetail(roomId);
+            loadRoomMessages(roomId);
+        }
+
+        // 加载群详情
+        async function loadRoomDetail(roomId) {
+            try {
+                const response = await fetch(`/api/room-detail/${encodeURIComponent(roomId)}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    renderRoomDetail(result.data);
+                }
+            } catch (error) {
+                console.error('加载群详情失败:', error);
+            }
+        }
+
+        // 渲染群详情
+        function renderRoomDetail(data) {
+            const header = document.getElementById('content-header');
+            header.style.display = 'block';
+
+            document.getElementById('room-title').textContent = data.room_name || data.room_id;
+
+            // 元信息
+            let metaHtml = '';
+            if (data.section_name) {
+                metaHtml += `<span class="badge">${data.section_name} ${data.level_name || ''}</span>`;
+            }
+            if (data.class_name) {
+                metaHtml += `<span>班级: ${data.class_name}</span>`;
+            } else {
+                metaHtml += `<span class="badge" style="background: #f3f4f6; color: #6b7280;">其他群</span>`;
+            }
+            document.getElementById('room-meta').innerHTML = metaHtml;
+
+            // 统计数据
+            const stats = data.stats || {};
+            document.getElementById('room-stats').innerHTML = `
+                <div class="room-stat">
+                    <div class="room-stat-value">${stats.total_messages || 0}</div>
+                    <div class="room-stat-label">总消息数</div>
+                </div>
+                <div class="room-stat">
+                    <div class="room-stat-value">${stats.active_members || 0}</div>
+                    <div class="room-stat-label">活跃成员</div>
+                </div>
+                <div class="room-stat">
+                    <div class="room-stat-value">${stats.messages_7days || 0}</div>
+                    <div class="room-stat-label">7天消息</div>
+                </div>
+                <div class="room-stat">
+                    <div class="room-stat-value">${stats.messages_today || 0}</div>
+                    <div class="room-stat-label">今日消息</div>
+                </div>
+            `;
+        }
+
+        // 加载消息列表
+        async function loadRoomMessages(roomId, page = 1) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const onlyUnmapped = document.getElementById('only-unmapped').checked;
+
+            let url = `/api/room-messages?room_id=${encodeURIComponent(roomId)}&page=${page}&page_size=${pageSize}`;
+            if (startDate) url += `&start_time=${startDate}T00:00:00`;
+            if (endDate) url += `&end_time=${endDate}T23:59:59`;
+            if (onlyUnmapped) url += `&only_unmapped=true`;
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    currentPage = result.page;
+                    totalPages = result.total_pages;
+                    renderMessages(result.messages);
+                    updatePagination();
+                } else {
+                    container.innerHTML = '<div class="empty-state">加载失败</div>';
+                }
+            } catch (error) {
+                console.error('加载消息失败:', error);
+                container.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // 渲染消息列表
+        function renderMessages(messages) {
+            const container = document.getElementById('messages-container');
+
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128172;</div>
+                        <p>该时间范围内暂无消息</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => {
+                const roleClass = msg.sender_role || '';
+                const roleText = getRoleText(msg.sender_role);
+                const msgType = getMsgTypeText(msg.msgtype);
+                const unmappedTag = msg.is_unmapped_parent
+                    ? '<span class="sender-role unmapped-parent">未映射家长</span>'
+                    : '';
+
+                return `
+                    <div class="message-item">
+                        <div class="message-header">
+                            <span class="sender-name">${msg.sender_name || msg.from_user_id || '未知'}</span>
+                            ${roleText ? `<span class="sender-role ${roleClass}">${roleText}</span>` : ''}
+                            ${unmappedTag}
+                            <span class="message-time">${formatTime(msg.msgtime)}</span>
+                        </div>
+                        <div class="message-content">${escapeHtml(msg.content || '[无文本内容]')}</div>
+                        ${msgType !== '文本' ? `<div class="message-type">[${msgType}]</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 获取角色文本
+        function getRoleText(role) {
+            const roleMap = {
+                'parent': '家长',
+                'teacher': '教师',
+                'head_teacher': '班主任',
+                'advisor': '顾问'
+            };
+            return roleMap[role] || '';
+        }
+
+        // 获取消息类型文本
+        function getMsgTypeText(msgtype) {
+            const typeMap = {
+                'text': '文本',
+                'image': '图片',
+                'file': '文件',
+                'video': '视频',
+                'voice': '语音',
+                'link': '链接',
+                'weapp': '小程序',
+                'chatrecord': '聊天记录',
+                'todo': '待办',
+                'vote': '投票',
+                'collect': '表单',
+                'redpacket': '红包',
+                'meeting': '会议',
+                'docmsg': '文档',
+                'markdown': 'Markdown',
+                'news': '图文'
+            };
+            return typeMap[msgtype] || msgtype || '未知';
+        }
+
+        // 更新分页
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+
+            document.getElementById('page-info').textContent = `第 ${currentPage} / ${totalPages} 页`;
+            document.getElementById('prev-btn').disabled = currentPage <= 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
+
+        // 上一页
+        function prevPage() {
+            if (currentPage > 1 && selectedRoomId) {
+                loadRoomMessages(selectedRoomId, currentPage - 1);
+            }
+        }
+
+        // 下一页
+        function nextPage() {
+            if (currentPage < totalPages && selectedRoomId) {
+                loadRoomMessages(selectedRoomId, currentPage + 1);
+            }
+        }
+
+        // 应用日期筛选
+        function applyDateFilter() {
+            if (selectedRoomId) {
+                currentPage = 1;
+                loadRoomMessages(selectedRoomId);
+            }
+        }
+
+        // 格式化时间
+        function formatTime(timeStr) {
+            if (!timeStr) return '-';
+
+            const date = new Date(timeStr);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+            const time = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+            if (msgDate.getTime() === today.getTime()) {
+                return `今天 ${time}`;
+            }
+
+            const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+            if (msgDate.getTime() === yesterday.getTime()) {
+                return `昨天 ${time}`;
+            }
+
+            return date.toLocaleDateString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
